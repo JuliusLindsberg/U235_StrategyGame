@@ -158,6 +158,11 @@ class Faction: public Identifiable {
     void printTroopData();
 
 public:
+
+    void addAlly(Faction* newAlly) {
+        allies.push_back(newAlly);
+    }
+
     std::string getFactionCode() {
         return factionCode;
     }
@@ -483,6 +488,8 @@ public:
     void debugPrint();
     bool checkFactionCodeValidity(std::string factionCode);
     bool interpretCommand(std::string command);
+    void handleDiplomacy();
+    void peaceTreaty(Faction* a, Faction* b);
     std::string endTurn();
     std::string handleServerCommand(std::string commandString);
     std::string handleNonFactionCommand(std::string commandString);
