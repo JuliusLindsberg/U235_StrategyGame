@@ -1,0 +1,1 @@
+1. Game crashes when units enter to island that has allied faction units on it (more of incomplete code than a bug, really)
