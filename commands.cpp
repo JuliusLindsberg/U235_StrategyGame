@@ -253,6 +253,26 @@ std::string World::factionTreatyRequest(std::string factionCode, std::vector<std
     //after that, a peace treaty will take place in the next turn
 }
 
+std::string World::declareWar(std::string factionCode, std::vector<std::string> arguments) {
+    if(arguments.size() != 1) {
+        return "WRONG AMOUNT OF ARGUMENTS";
+    }
+    Faction* subject = getFactionFromCode(factionCode);
+    Faction* object = getFactionFromName(arguments[0]);
+    if( subject == NULL ) {
+        return "FACTION CODE WAS INVALID";
+    }
+    if( object == NULL ) {
+        return "FACTION WAS NOT FOUND";
+    }
+    if( isDeclaringWar(subject, object) ) {
+        return "WAR ALREADY DECLARED";
+    }
+
+    std::pair<Faction*, Faction*> (subject, object);
+    return "";
+}
+
 //this function has to first make sure the command was valid(has correct faction code in the beginning of the command and then assure given move is viable for the faction)
 //then change the state of the game according to that command
 std::string World::executeCommand(std::string factionCode, std::string command, std::vector<std::string> arguments) {
@@ -267,6 +287,7 @@ std::string World::executeCommand(std::string factionCode, std::string command, 
     }
     else if(command == "war") {
         //naturally, declaring war is unilateral: as the saying goes, wars begin when you will but will not end when you please
+        return declareWar(factionCode, arguments);
     }
     else {
         return "UNKNOWN COMMAND";

@@ -162,6 +162,15 @@ public:
     void addAlly(Faction* newAlly) {
         allies.push_back(newAlly);
     }
+    void removeAlly(Faction* ally) {
+        for( auto it = allies.begin(); it != allies.end(); it++ ) {
+            if( (*it) == ally ) {
+                allies.remove(*it);
+                return;
+            }
+        }
+        std::cerr << "Error in Faction::deleteAlly(): ally to be deleted from ally list was not found!";
+    }
 
     std::string getFactionCode() {
         return factionCode;
@@ -460,6 +469,7 @@ private:
     std::list<Rim> rims;
     std::vector<UnverifiedFaction> unverifiedFactions;
     std::list<std::pair<Faction*, Faction*>> treatyRequests;
+    std::list<std::pair<Faction*, Faction*>> warDeclarations;
     bool unstarted;
 
     void completeInit() {
@@ -490,6 +500,9 @@ public:
     bool interpretCommand(std::string command);
     void handleDiplomacy();
     void peaceTreaty(Faction* a, Faction* b);
+    void setWar(Faction* a, Faction* b);
+    bool isDeclaringWar(Faction* subject, Faction* object);
+    std::string declareWar(std::string command, std::vector<std::string> arguments);
     std::string endTurn();
     std::string handleServerCommand(std::string commandString);
     std::string handleNonFactionCommand(std::string commandString);
