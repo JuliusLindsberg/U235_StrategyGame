@@ -265,11 +265,17 @@ std::string World::declareWar(std::string factionCode, std::vector<std::string> 
     if( object == NULL ) {
         return "FACTION WAS NOT FOUND";
     }
+    if(subject == object) {
+        return "FACTION ARGUMENTS GIVEN WERE THE SAME FACTION";
+    }
     if( isDeclaringWar(subject, object) ) {
         return "WAR ALREADY DECLARED";
     }
+    if(!subject->isAllyOf(object)) {
+        return "THE FACTIONS ARE ALREADY AT WAR";
+    }
 
-    std::pair<Faction*, Faction*> (subject, object);
+    warDeclarations.push_back(std::pair<Faction*, Faction*> (subject, object));
     return "";
 }
 

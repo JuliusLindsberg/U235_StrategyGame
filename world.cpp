@@ -201,7 +201,9 @@ void World::peaceTreaty(Faction* a, Faction* b) {
 
 void World::setWar(Faction* a, Faction* b) {
     if( !a->isAllyOf(b) || !b->isAllyOf(a) ) {
-        std::cerr << "Error in World::declareWar(): factions '" << a->getName() << "' and '" << b->getName() << "' were at war to begin with.\n";
+        //actually, it is better for the function to just return instead of an error message
+        //std::cerr << "Error in World::declareWar(): factions '" << a->getName() << "' and '" << b->getName() << "' were at war to begin with.\n";
+        return;
     }
     a->removeAlly(b);
     b->removeAlly(a);
@@ -225,12 +227,15 @@ void World::handleDiplomacy() {
         for(; ct != treatyRequests.end(); ct++) {
             if( (*it).first == (*ct).second && (*ct).first == (*it).second || (*ct).first == (*it).second && (*it).first == (*ct).second ) {
                 peaceTreaty( (*it).first, (*it).second );
+                it = treatyRequests.erase(it);
+                ct = treatyRequests.erase(ct);
             }
         }
     }
 
     for( auto it = warDeclarations.begin(); it != warDeclarations.end(); it++ ) {
         setWar((*it).first, (*it).second);
+        it = warDeclarations.erase(it);
     }
 }
 
@@ -645,8 +650,8 @@ std::string World::endTurn() {
             }
         }
     }
-
     fightBattles();
+    std::cout << "Battles fought\n";
     //recruit new troops
     for(auto it = factions.begin(); it != factions.end(); it++) {
         (*it).turnUpdate(getDominance((&*it)), baseRegimentSupply, baseBattleshipSupply);
@@ -689,11 +694,15 @@ void Faction::turnUpdate(float areaDominance, float baseRegimentSupply, float ba
 
 
 void BattleSide::countTotalStrength(std::list<BattleSide>* sides) {
+    std::cout << "World::countTotalStrenght()\n";
+    //total strength is personal strength combined with the strength of allies
     totalStrength = personalStrength;
     for( auto it = allies.begin(); it != allies.end(); it++ ) {
+        std::cout << "cts::iterating new i\n";
         float sidesTotal = 0.0f;
         float mutualEnemies = 0.0f;
         for( auto ct = sides->begin(); ct != sides->end(); ct++ ) {
+            std::cout << "cts::iterating new c\n";
             if((*ct).isAllyOf((*it)->owner) && &(*ct) != this) {
                 //battleside *it is not of use against foe *ct
             }
