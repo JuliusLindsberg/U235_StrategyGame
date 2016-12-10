@@ -363,12 +363,14 @@ struct BattleSide {
         allies.push_back(battleSide);
     }
     bool isAllyOf(Faction* faction) {
+        /*
         for(auto it = allies.begin(); it != allies.end(); it++) {
             if( (*it)->isAllyOf(faction) ) {
                 return true;
             }
         }
-        return false;
+        return false;*/
+        return owner->isAllyOf(faction);
     }
     void countTotalStrength(std::list<BattleSide>* sides);
     void countOppressionStrength(std::list<BattleSide>* sides);

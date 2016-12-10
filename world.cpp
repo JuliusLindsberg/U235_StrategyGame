@@ -695,35 +695,55 @@ void Faction::turnUpdate(float areaDominance, float baseRegimentSupply, float ba
 
 void BattleSide::countTotalStrength(std::list<BattleSide>* sides) {
     std::cout << "World::countTotalStrenght()\n";
-    //total strength is personal strength combined with the strength of allies
+    //total strength is personal strength combined with the strength of allies that are fighting your enemies also
     totalStrength = personalStrength;
     for( auto it = allies.begin(); it != allies.end(); it++ ) {
+        std::cout << "new battleSide ally: " << (*it)->owner->getName() << "\n";
         std::cout << "cts::iterating new i\n";
-        float sidesTotal = 0.0f;
-        float mutualEnemies = 0.0f;
+        //float sidesTotal = 0.0f;
+        float nonMutualEnemyStrength = 0.0f;
+        float mutualEnemyStrength = 0.0f;
         for( auto ct = sides->begin(); ct != sides->end(); ct++ ) {
+            std::cout << "new iterable side: " << (*ct).owner->getName() << "\n";
             std::cout << "cts::iterating new c\n";
-            if((*ct).isAllyOf((*it)->owner) && &(*ct) != this) {
-                //battleside *it is not of use against foe *ct
+            if( &(*ct) != this && &(*ct) != (*it) ) {
+                if( (*ct).isAllyOf((*it)->owner) ) {
+                    //battleside *it is not of use against foe *ct
+                    nonMutualEnemyStrength += (*ct).personalStrength;
+
+                }
+                else {
+                    mutualEnemyStrength += (*ct).personalStrength;
+                }
+                std::cout << "aaaa\n";
+                if(nonMutualEnemyStrength == 0) {
+                    totalStrength += (*it)->personalStrength*1;
+                }
+                else {
+                    totalStrength += (*it)->personalStrength*(nonMutualEnemyStrength+mutualEnemyStrength)/nonMutualEnemyStrength;
+                }
+                std::cout << "bbbb\n";
             }
             else {
-                mutualEnemies+=1.0f;
+                std::cout << "same side spotted!\n";
             }
-            sidesTotal+=1.0f;
         }
-        totalStrength += (*it)->personalStrength*mutualEnemies/sidesTotal;
     }
+    std::cout << "totalStrength counted!\n";
 }
 
 void BattleSide::countOppressionStrength(std::list<BattleSide>* sides) {
+    std::cout << "countOpressionStrength\n";
     oppressionStrength = 0.0f;
     for( auto it = sides->begin(); it != sides->end(); it++ ) {
+        std::cout << "counting opression strength for " << (*it).owner->getName() << "\n";
         if( (*it).owner == owner || (*it).isAllyOf(owner) ) {
             continue;
         }
         oppressionStrength += (*it).personalStrength;
     }
     std::cout << "battleSide oppression strength: " << oppressionStrength << "\n";
+    std::cout << "opression Strength counted!\n";
 }
 
 void Island::damageUnits(std::list<BattleSide>& sides) {
@@ -814,7 +834,7 @@ void Island::battleSides(std::list<BattleSide>& sides) {
         sides.push_back(a);
     }
     //now battlesides and their personal strengths have been calculated. Commencing to finding all the allies of battlesides
-    //this is poorly optimised but the code isn't bottlenecking here
+    //this is poorly optimised but the code won't be bottlenecking here
     for(auto it = sides.begin(); it != sides.end(); it++) {
         for(auto ct = sides.begin(); ct != sides.end(); ct++ ) {
             if( (*it).owner->isAllyOf((*ct).owner) ) {
