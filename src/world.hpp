@@ -6,9 +6,15 @@
 #include <vector>
 #include <iostream>
 #include "names.hpp"
+#include "stringdataparser.hpp"
+#include "messagestrings.hpp"
+
 #include <stdexcept>
 #include <random>
 #include <cmath>
+
+const char UNIT_NAME_SEPARATOR_CHARACTER = '#';
+const char FACTION_COMMAND_SEPARATOR_CHARACTER = '%';
 
 const float MAX_CONDITION = 100;
 const unsigned startBattleshipAmount = 2;
@@ -21,11 +27,16 @@ const float battleAttackerDisadvantageConstant = 1.3;
 
 const float dominanceToRegimentsFactor = 0.4f;
 const float dominanceToBattleshipsFactor = 0.2f;
+const unsigned FACTION_CODE_LENGTH = 4;
 
 class Island;
 class World;
 class Faction;
 class Garrisonable;
+class WorldData;
+
+//this lone function is used by both client and host
+std::string parseFactionCommand(std::string commandString, std::vector<std::string>& arguments, std::string& command, std::string& factionCode);
 
 //base class for all the game elements in the game which have a name
 class Identifiable {
@@ -118,6 +129,7 @@ struct UnverifiedFaction {
 class Faction: public Identifiable {
     friend Island;
     friend World;
+    friend WorldData;
 //private:
     std::list<Battleship> battleships;
     std::list<Regiment> regiments;
@@ -127,6 +139,7 @@ class Faction: public Identifiable {
     float newRegimentProgress;
     float newBattleshipProgress;
 
+    unsigned color;
     std::string factionCode;
     Island* baseIsland;
     int regimentCounter;
@@ -134,15 +147,15 @@ class Faction: public Identifiable {
     int spyCounter;
     std::string getRegimentName() {
         regimentCounter++;
-        return name + "#r" + std::to_string(regimentCounter);
+        return name + UNIT_NAME_SEPARATOR_CHARACTER + 'r' + std::to_string(regimentCounter);
     };
     std::string getBattleshipName() {
         battleshipCounter++;
-        return name + "#b" + std::to_string(battleshipCounter);
+        return name + UNIT_NAME_SEPARATOR_CHARACTER +'b' + std::to_string(battleshipCounter);
     }
     std::string getSpyName() {
         spyCounter++;
-        return name + "#s" + std::to_string(spyCounter);
+        return name + UNIT_NAME_SEPARATOR_CHARACTER + 's' + std::to_string(spyCounter);
     }
 
     Battleship* addBattleship(Island* targetIsland);
@@ -175,6 +188,16 @@ public:
     std::string getFactionCode() {
         return factionCode;
     }
+    unsigned getColor() {
+        return color;
+    }
+    Island* getBaseIsland() {
+        return baseIsland;
+    }
+    void setColor(unsigned _color) {
+        color = _color;
+    }
+
     Faction(std::string _name) {
         regimentCounter = 0;
         battleshipCounter = 0;
@@ -182,6 +205,7 @@ public:
         newBattleshipProgress = 0.0f;
         newRegimentProgress = 0.0f;
         setName(_name);
+        baseIsland = nullptr;
     }
     void turnUpdate(float areaDominance, float baseRegimentSupply, float baseBattleshipSupply);
     int peekRegimentCounter() {
@@ -434,6 +458,7 @@ public:
 
 class Rim: public Identifiable {
     friend World;
+    friend WorldData;
 private:
     int number;
     std::list<Island> islands;
@@ -455,9 +480,8 @@ public:
     void setAdjacentIslands();
 };
 
-//world-class contains the topological information of the playable area
-class World: public Identifiable {
-private:
+class WorldData {
+protected:
     int rimAmount;
     int playerAmount;
     int spyAmount;
@@ -466,13 +490,18 @@ private:
     int baseBattleshipSupply;
     int regimentRecoveryRate;
     int shipRecoveryRate;
-    Namesystem islandNames;
-    std::list<Faction> factions;
+    bool unstarted;
+};
+
+//world-class contains the topological information of the playable area and all kinds of other relevant data
+class World: public Identifiable, public WorldData {
+private:
     std::list<Rim> rims;
+    std::list<Faction> factions;
     std::vector<UnverifiedFaction> unverifiedFactions;
     std::list<std::pair<Faction*, Faction*>> treatyRequests;
     std::list<std::pair<Faction*, Faction*>> warDeclarations;
-    bool unstarted;
+    Namesystem islandNames;
 
     void completeInit() {
         return;
@@ -491,19 +520,30 @@ public:
     bool isStarted() {
         return !unstarted;
     }
+    void debugPrint();
+    std::string handleCommand(std::string commandString);
+    Island* getIslandFromName(std::string islandName);
+    Faction* getFactionFromCode(std::string factionCode);
+    Faction* getFactionFromName(std::string factionName);
+    Regiment* getRegimentFromName(std::string regimentName);
+    Battleship* getBattleshipFromName(std::string battleshipName);
+    Spy* getSpyFromName(std::string spyName);
+    bool isDeclaringWar(Faction* subject, Faction* object);
 
+    //saves the data of the whole world in a single std::string
+    //LOSFaction can be left as null for global vision
+private:
     std::string startWorld(unsigned _rimAmount, int islandness, int _falloutTime, float _baseRegimentSupply, float _baseBattleshipSupply,
     unsigned _spyAmount, int _regimentRecoveryRate, int _shipRecoveryRate, std::string worldName);
-
+    void worldInStringFormatForFaction(std::string& stringWorld, Faction* LOSFaction = nullptr);
     float getDominance(Faction* faction);
-    void setStartingTroops();
-    void debugPrint();
     bool checkFactionCodeValidity(std::string factionCode);
     bool interpretCommand(std::string command);
     void handleDiplomacy();
     void peaceTreaty(Faction* a, Faction* b);
     void setWar(Faction* a, Faction* b);
-    bool isDeclaringWar(Faction* subject, Faction* object);
+    void setStartingTroops();
+    void fightBattles();
     std::string declareWar(std::string command, std::vector<std::string> arguments);
     std::string endTurn();
     std::string handleServerCommand(std::string commandString);
@@ -512,16 +552,11 @@ public:
     std::string addFaction(std::string commandString);
     std::string executeCommand(std::string factionCode, std::string command, std::vector<std::string> arguments);
     std::string moveTroop(std::string factionCode, std::vector<std::string> arguments);
-    std::string handleCommand(std::string commandString);
     std::string factionTreatyRequest(std::string factionCode, std::vector<std::string> arguments);
     std::string addTreatyRequest(Faction* subject, Faction* object);
-    Faction* getFactionFromCode(std::string factionCode);
-    Faction* getFactionFromName(std::string factionName);
-    Regiment* getRegimentFromName(std::string regimentName);
-    Battleship* getBattleshipFromName(std::string battleshipName);
-    Spy* getSpyFromName(std::string spyName);
-    Island* getIslandFromName(std::string islandName);
-    void fightBattles();
+    std::string getFactionWorldString(std::string factionCode, std::vector<std::string> arguments);
+    std::list<Island*> getIslandLOSFilter(Faction* faction);
+    bool islandOnLOS(std::list<Island*>& filter);
 };
 
 #endif

@@ -1,0 +1,2 @@
+Unfortunately cmakefiles or makefiles have not been created yet so building the project would require installing and linking sfml and project files independently.
+This should change some day, hopefully.

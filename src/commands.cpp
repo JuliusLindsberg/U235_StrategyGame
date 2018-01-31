@@ -1,5 +1,5 @@
 #include "world.hpp"
-
+#include "messagestrings.hpp"
 
 bool World::checkFactionCodeValidity(std::string factionCode) {
     for(std::list<Faction>::iterator it = factions.begin(); it != factions.end(); it++) {
@@ -22,17 +22,17 @@ Faction* World::getFactionFromCode(std::string factionCode) {
 std::string World::addFaction(std::string commandString) {
     std::string factionName = commandString.substr(2);
     if(isStarted()) {
-        return "GAME ALREADY IN PROGRESS";
+        return MSG::GAME_ALREADY_IN_PROGRESS;
     }
     else if(factionName.size() < 3) {
-        return "FACTION NAME TOO SHORT";
+        return MSG::FACTION_NAME_TOO_SHORT;
     }
     else {
         //create a random faction code and make sure this code is unique
         std::string factionCode;
+        factionCode.clear();
         while(true) {
-            factionCode.clear();
-            for(unsigned i = 0; i < 4; i++) {
+            for(unsigned i = 0; i < FACTION_CODE_LENGTH; i++) {
                 //create a new random faction code. If the created code is already in use, try again
                 //47-59 are the digits 0 to 9 in ascii
                 factionCode.push_back((char)(47+random(10)));
@@ -41,7 +41,7 @@ std::string World::addFaction(std::string commandString) {
             //if there exists an faction with the same code, discard the code
             for(std::list<Faction>::iterator it = factions.begin(); it != factions.end(); it++) {
                 if((*it).name == factionName) {
-                    return "FACTION NAME ALREDY USED";
+                    return MSG::FACTION_NAME_ALREADY_USED;
                 }
 
                 if((*it).factionCode == factionCode) {
@@ -68,7 +68,7 @@ std::string World::addFaction(std::string commandString) {
 
 std::string World::verifyFaction(std::string commandString) {
     if(isStarted()) {
-        return "GAME ALREADY IN PROGRESS";
+        return MSG::GAME_ALREADY_IN_PROGRESS;
     }
     std::string factionCode = commandString.substr(2);
     //if the given factionCode matches with one of the unverified factions, verify that faction
@@ -83,7 +83,7 @@ std::string World::verifyFaction(std::string commandString) {
             return "";
         }
     }
-    return "INVALID FACTION CODE";
+    return MSG::INVALID_FACTION_CODE;
 }
 
 std::string World::handleNonFactionCommand(std::string commandString) {
@@ -103,7 +103,7 @@ std::string World::handleNonFactionCommand(std::string commandString) {
     case 'l':
         {
             if(factions.size() == 0) {
-                return "NO FACTIONS HAVE JOINED GAME";
+                return MSG::NO_FACTIONS_HAVE_JOINED_GAME;
             }
             std::string factionList;
             factionList.clear();
@@ -112,18 +112,27 @@ std::string World::handleNonFactionCommand(std::string commandString) {
             }
             return factionList;
         }
+    case 'p':
+        {
+            if(isStarted()) {
+                return MSG::RUNNING;
+            }
+            else {
+                return MSG::LOBBY;
+            }
+        }
     case 'h':
         {
             return "#j<faction name> join game, #v<faction code> verify faction join, #l return list of factions joined, #h this help";
         }
     default:
-        return "NON-FACTION COMMAND WAS NOT RECOGNISED";
+        return MSG::NON_FACTION_COMMAND_WAS_NOT_RECOGNICED;
     };
 }
 
 std::string World::handleServerCommand(std::string commandString) {
     if(commandString.size() < 2) {
-        return "INVALID SERVER COMMAND STRING";
+        return MSG::INVALID_SERVER_COMMAND_STRING;
     }
     char commandType = commandString[1];
     std::vector<std::string> arguments;
@@ -151,14 +160,14 @@ case 's':
             std::string returnMessage = "";
             returnMessage = startWorld(5, 3, 1, 0.3, 0.3, 2, 0.3, 0.2, "Atolls");
             if(returnMessage == "") {
-                return "DEFAULT WORLD CREATED";
+                return MSG::DEFAULT_WORLD_CREATED;
             }
             else {
                 return returnMessage;
             }
         }
         if(arguments.size() != 9) {
-            return "INVALID AMOUNT OF ARGUMENTS IN COMMAND";
+            return MSG::INVALID_AMOUNT_OF_ARGUMENTS_IN_COMMAND;
         }
         std::string returnMessage = "";
         try {
@@ -166,7 +175,7 @@ case 's':
                    (unsigned)std::stoi(arguments[5]), std::stoi(arguments[6]), std::stoi(arguments[7]), arguments[8]);
         }
         catch(std::invalid_argument){
-            return "WRONG KIND OF ARGUMENTS IN COMMAND";
+            return MSG::WRONG_KIND_OF_ARGUMENTS_IN_COMMAND;
         }
         return returnMessage;
     }
@@ -181,11 +190,11 @@ case 't':
     }
 case 'q':
     {
-        return "GAME SHUTDOWN FROM INPUT";
+        return MSG::GAME_SHUTDOWN_FROM_INPUT;
     }
 default:
     {
-        return "SERVER COMMAND WAS NOT RECOGNISED";
+        return MSG::SERVER_COMMAND_WAS_NOT_RECOGNISED;
     }
     };
     return "";
@@ -193,13 +202,14 @@ default:
 
 //parses the command and then excecutes it. Returns error strings that should be forwarded to clients in case of errors
 std::string World::handleCommand(std::string commandString) {
+    std::cout << "handling server command!";
     if(commandString.size() == 0) {
-        return "EMPTY STRING";
+        return MSG::EMPTY_STRING;
     }
     //some commands should not have faction-code as requirement. The #(char) is for those
     if( commandString[0] == '#' ) {
         if( commandString.size() == 1 ) {
-            return "NON-FACTION COMMAND SYNTAX WAS INVALID";
+            return MSG::NON_FACTION_COMMAND_SYNTAX_WAS_INVALID;
         }
         return handleNonFactionCommand(commandString);
     }
@@ -207,46 +217,27 @@ std::string World::handleCommand(std::string commandString) {
         return handleServerCommand(commandString);
     }
     std::vector<std::string> arguments;
-    arguments.clear();
-    //pick up the faction code part from the command string
-    int firstPoint = commandString.find_first_of(':');
-    if(firstPoint < 0) {
-        return "COMMAND SYNTAX WAS INVALID";
+    std::string command, factionCode;
+    std::string returnString = parseFactionCommand(commandString, arguments, command, factionCode);
+    if( returnString != "" ) {
+        return returnString;
     }
-    std::string factionCode = commandString.substr(0, firstPoint);
-    commandString = commandString.substr(firstPoint+1);
-    //pick up the command name from the command string
-    int secondPoint = commandString.find_first_of(':');
-    if(secondPoint < 0) {
-        return "COMMAND SYNTAX WAS INVALID";
-    }
-    std::string command = commandString.substr(0, secondPoint);
-    commandString = commandString.substr(secondPoint+1);
-    //pick up all the following arguments from the command string
-    while(true) {
-        //ARGUMENT SEPARATOR WILL BE CHANGED INTO CHARACTER \n IN LATER DEVELOPMENT WHEN I'M NOT USING CONSOLES FOR SENDING MESSAGES
-        int nextPoint = commandString.find_first_of('%');
-        if(nextPoint < 0) {
-            break;
-        }
-        arguments.push_back(commandString.substr(0, nextPoint));
-        commandString = commandString.substr(nextPoint+1);
-    }
+
     return executeCommand(factionCode, command, arguments);
 }
 
 std::string World::factionTreatyRequest(std::string factionCode, std::vector<std::string> arguments) {
     //argument[0] is the target faction the command sender faction wants to be in peace with
     if(arguments.size() != 1) {
-        return "WRONG AMOUNT OF ARGUMENTS";
+        return MSG::WRONG_AMOUNT_OF_ARGUMENTS;
     }
     Faction* subjectFaction = getFactionFromCode(factionCode);
     Faction* objectFaction = getFactionFromName(arguments[0]);
     if(subjectFaction->isAllyOf(objectFaction)) {
-        return "FACTIONS ARE ALREADY ALLIES";
+        return MSG::FACTIONS_ARE_ALREADY_ALLIES;
     }
     if( subjectFaction == objectFaction ) {
-        return "FACTION ARGUMENTS GIVEN WERE THE SAME FACTION";
+        return MSG::FACTION_ARGUMENTS_GIVEN_WERE_THE_SAME_FACTION;
     }
     return addTreatyRequest(subjectFaction, objectFaction);
     //in order to succesfully make a peace treaty, both factions have to send treaty command to the server with the other faction as the target faction
@@ -255,35 +246,49 @@ std::string World::factionTreatyRequest(std::string factionCode, std::vector<std
 
 std::string World::declareWar(std::string factionCode, std::vector<std::string> arguments) {
     if(arguments.size() != 1) {
-        return "WRONG AMOUNT OF ARGUMENTS";
+        return MSG::WRONG_AMOUNT_OF_ARGUMENTS;
     }
     Faction* subject = getFactionFromCode(factionCode);
     Faction* object = getFactionFromName(arguments[0]);
     if( subject == NULL ) {
-        return "FACTION CODE WAS INVALID";
+        return MSG::FACTION_CODE_WAS_INVALID;
     }
     if( object == NULL ) {
-        return "FACTION WAS NOT FOUND";
+        return MSG::FACTION_WAS_NOT_FOUND;
     }
     if(subject == object) {
-        return "FACTION ARGUMENTS GIVEN WERE THE SAME FACTION";
+        return MSG::FACTION_ARGUMENTS_GIVEN_WERE_THE_SAME_FACTION;
     }
     if( isDeclaringWar(subject, object) ) {
-        return "WAR ALREADY DECLARED";
+        return MSG::WAR_ALREADY_DECLARED;
     }
     if(!subject->isAllyOf(object)) {
-        return "THE FACTIONS ARE ALREADY AT WAR";
+        return MSG::THE_FACTIONS_ARE_ALREADY_AT_WAR;
     }
 
     warDeclarations.push_back(std::pair<Faction*, Faction*> (subject, object));
     return "";
 }
 
+std::string World::getFactionWorldString(std::string factionCode, std::vector<std::string> arguments) {
+    if(arguments.size() != 0) {
+        return MSG::THIS_FUNCTION_TAKES_NO_ARGUMENTS;
+    }
+    Faction* faction = getFactionFromCode(factionCode);
+    if(faction == NULL) {
+        return MSG::FACTION_CODE_WAS_INVALID;
+    }
+    std::string returnString;
+    worldInStringFormatForFaction(returnString, faction);
+
+    return returnString;
+}
+
 //this function has to first make sure the command was valid(has correct faction code in the beginning of the command and then assure given move is viable for the faction)
 //then change the state of the game according to that command
 std::string World::executeCommand(std::string factionCode, std::string command, std::vector<std::string> arguments) {
     if(!checkFactionCodeValidity(factionCode)) {
-        return "FACTION CODE WAS NOT VALID";
+        return MSG::FACTION_CODE_WAS_INVALID;
     }
     if(command == "move") {
         return moveTroop(factionCode, arguments);
@@ -295,7 +300,10 @@ std::string World::executeCommand(std::string factionCode, std::string command, 
         //naturally, declaring war is unilateral: as the saying goes, wars begin when you will but will not end when you please
         return declareWar(factionCode, arguments);
     }
+    else if( command == "gamestate" ) {
+        return getFactionWorldString(factionCode, arguments);
+    }
     else {
-        return "UNKNOWN COMMAND";
+        return MSG::UNKNOWN_COMMAND;
     }
 }

@@ -86,7 +86,7 @@ void Rim::setAdjacentIslands() {
     if (islands.size() < 2) {
         return;
     }
-    std::cout << "setting adjacent islands\n";
+    //std::cout << "setting adjacent islands\n";
     std::list<Island>::iterator startIterator = islands.begin();
     //std::cout << "This rim has " << islands.size() << " islands!\n";
     //previousIsland is the first and currentIsland the second island in the list
@@ -108,7 +108,7 @@ void Rim::setAdjacentIslands() {
     }
     //std::cout << "last island being inserted!\n";
     connectIslands(previousIsland, &*startIterator);
-    std::cout << "adjacent islands set\n";
+    //std::cout << "adjacent islands set\n";
 }
 
 void World::setFollowingRims() {
@@ -225,7 +225,7 @@ void World::handleDiplomacy() {
     //are a pair in a way that they are two factions requesting each other for treaty, a peace treaty will be made
     for( auto it = treatyRequests.begin(); it != treatyRequests.end(); it++ ) {
         for(; ct != treatyRequests.end(); ct++) {
-            if( (*it).first == (*ct).second && (*ct).first == (*it).second || (*ct).first == (*it).second && (*it).first == (*ct).second ) {
+            if( ( (*it).first == (*ct).second && (*ct).first == (*it).second ) || ( (*ct).first == (*it).second && (*it).first == (*ct).second ) ) {
                 peaceTreaty( (*it).first, (*it).second );
                 it = treatyRequests.erase(it);
                 ct = treatyRequests.erase(ct);
@@ -243,9 +243,8 @@ std::string World::startWorld(unsigned _rimAmount, int islandness, int _falloutT
     unsigned _spyAmount, int _regimentRecoveryRate, int _shipRecoveryRate, std::string worldName) {
 
     if(!unstarted) {
-        return "WORLD WAS ALREADY STARTED!";
+        return MSG::WORLD_ALREADY_STARTED;
     }
-    std::cout << "World begin!\n";
     std::list<Faction*> factionsPointerList;
 
     //unsigned _rimAmount = 5;
@@ -255,7 +254,7 @@ std::string World::startWorld(unsigned _rimAmount, int islandness, int _falloutT
 
     for(unsigned i = 0; i < _rimAmount; i++) {
         rimIslandAdditionValues[i] = random(islandness);
-        std::cout << "rim " << i << " has " << rimIslandAdditionValues[i] << " as it's island multiplier value\n";
+        //std::cout << "rim " << i << " has " << rimIslandAdditionValues[i] << " as it's island multiplier value\n";
     }
     //initializing World data
     setName(worldName);
@@ -301,6 +300,7 @@ std::string World::startWorld(unsigned _rimAmount, int islandness, int _falloutT
 
     setStartingTroops();
 
+    return "";
     //F(); ??WTH IS THIS???
 }
 
@@ -324,7 +324,7 @@ void World::setAdjacentRims() {
     std::list<Rim>::iterator it = rims.begin();
     it++;
     for(; it != rims.end(); it++) {
-        std::cout << "iterating rim islands for adjacent placement!\n";
+        //std::cout << "iterating rim islands for adjacent placement!\n";
         (*it).setAdjacentIslands();
     }
 }
@@ -384,12 +384,12 @@ void Faction::printTroopData() {
 std::string World::addTreatyRequest(Faction* subject, Faction* object) {
     //first check for null pointers and return an appropriate error message if found
     if(subject == NULL || object == NULL) {
-        return "INVALID FACTION";
+        return MSG::INVALID_FACTION;
     }
     //check if such treatyRequest already exists.
     for( auto it = treatyRequests.begin(); it != treatyRequests.end(); it++ ) {
         if((*it).first == subject && (*it).second == object) {
-            return "TREATY ALREADY REQUESTED WITH THIS FACTION";
+            return MSG::TREATY_ALREADY_REQUESTED_WITH_THIS_FACTION;
         }
     }
     treatyRequests.push_back(std::pair<Faction*, Faction*>(subject, object));
@@ -444,7 +444,7 @@ std::string World::moveTroop(std::string factionCode, std::vector<std::string> a
     //argument[0] is the unit name and argument[1] is the target island name
     if(arguments.size() != 2) {
         std::cerr << "Error in World::moveTroop(): wrong amount of arguments given to command 'move'\n";
-        return "WRONG AMOUNT OF ARGUMENTS IN COMMAND";
+        return MSG::INVALID_AMOUNT_OF_ARGUMENTS_IN_COMMAND;
     }
     Faction* troopFaction = getFactionFromCode(factionCode);
     if(troopFaction == NULL) {
@@ -452,7 +452,7 @@ std::string World::moveTroop(std::string factionCode, std::vector<std::string> a
     }
     if(!troopFaction) {
         std::cerr << "Error in World::moveTroop(): factionCode argument given in function call did not match to any of the factions.\n";
-        return "INVALID FACTION CODE";
+        return MSG::INVALID_FACTION_CODE;
     }
     Regiment* regiment = getRegimentFromName(arguments[0]);
     //std::cout << "regiment->getName returns " << regiment->getName() << "\n";
@@ -465,16 +465,16 @@ std::string World::moveTroop(std::string factionCode, std::vector<std::string> a
             //std::cout << "troopFaction: " << troopFaction->getName() << "regiment->faction: ";// << regiment->getFaction()->getName() << "\n";
             //if the regiment belonged to a different faction
             std::cerr << "Error in World::moveTroop(): unit '" << arguments[0] << "' did not belong to faction '" << troopFaction->getName() << "'\n";
-            return "UNIT DID NOT BELONG TO THIS FACTION";
+            return MSG::UNIT_DID_NOT_BELONG_TO_THIS_FACTION;
         }
         Island* targetIsland = getIslandFromName(arguments[1]);
         if(!targetIsland) {
             std::cerr << "Error in World::moveTroop(): island '" << arguments[1] << "' apparently does not exist\n";
-            return "ISLAND DOES NOT EXIST";
+            return MSG::ISLAND_DOES_NOT_EXIST;
         }
         //if the islands are not connected, The move is illegal in the game rules. Therefore, return an appropriate error string
         if( !(regiment->getPosition())->isLinkedTo(targetIsland) ) {
-            return "ILLEGAL MOVE, ISLANDS WERE NOT CONNECTED";
+            return MSG::ILLEGAL_MOVE_ISLANDS_NOT_CONNECTED;
         }
         regiment->setTarget(targetIsland);
         return "";
@@ -488,12 +488,12 @@ std::string World::moveTroop(std::string factionCode, std::vector<std::string> a
         if(battleship->getFaction() != troopFaction) {
             //if the battleship belonged to a different faction
             std::cerr << "Error in World::moveTroop(): unit '" << arguments[0] << "' did not belong to faction '" << troopFaction->getName() << "'\n";
-            return "UNIT DID NOT BELONG TO THIS FACTION";
+            return MSG::UNIT_DID_NOT_BELONG_TO_THIS_FACTION;
         }
         Island* targetIsland = getIslandFromName(arguments[1]);
         if(!targetIsland) {
             std::cerr << "Error in World::moveTroop(): island '" << arguments[1] << "' apparently does not exist\n";
-            return "ISLAND DOES NOT EXIST";
+            return MSG::ISLAND_DOES_NOT_EXIST;
         }
         battleship->setTarget(targetIsland);
         return "";
@@ -507,18 +507,18 @@ std::string World::moveTroop(std::string factionCode, std::vector<std::string> a
         if(spy->getFaction() != troopFaction) {
             //if the spy belonged to a different faction
             std::cerr << "Error in World::moveTroop(): unit '" << arguments[0] << "' did not belong to faction '" << troopFaction->getName() << "'\n";
-            return "UNIT DID NOT BELONG TO THIS FACTION";
+            return MSG::UNIT_DID_NOT_BELONG_TO_THIS_FACTION;
         }
         Island* targetIsland = getIslandFromName(arguments[1]);
         if(!targetIsland) {
             std::cerr << "Error in World::moveTroop(): island '" << arguments[1] << "' apparently does not exist\n";
-            return "ISLAND DOES NOT EXIST";
+            return MSG::ISLAND_DOES_NOT_EXIST;
         }
         spy->setTarget(targetIsland);
         return "";
     }
     std::cerr << "Error in World::moveTroop(): no unit named '" << arguments[0] << "' was found\n";
-    return "UNIT WAS NOT FOUND";
+    return MSG::UNIT_WAS_NOT_FOUND;
 };
 
 Island* World::getIslandFromName(std::string islandName) {
@@ -543,7 +543,7 @@ void Island::addTroops(int battleshipAmount, int regimentAmount, int spyAmount, 
     for(int i = 0; i < regimentAmount; i++) {
         garrison->regiments.push_back(faction->addRegiment(this));
         garrison->regiments.back()->setFaction(faction);
-        std::cout << "DEBUG PRINT HERE " << faction->regiments.back().getFaction() << "\n";
+        //std::cout << "DEBUG PRINT HERE " << faction->regiments.back().getFaction() << "\n";
     }
     //add spies
     for(int i = 0; i < spyAmount; i++) {
@@ -590,7 +590,7 @@ Spy* Faction::addSpy(Island* targetIsland) {
 
 std::string World::endTurn() {
     if(!isStarted()) {
-        return "GAME IS NOT STARTED YET";
+        return MSG::GAME_NOT_STRATED_YET;
     }
     //move troops, do battles. That sort of thing!
 
@@ -874,3 +874,257 @@ void World::fightBattles() {
     }
 
 }
+
+std::list<Island*> World::getIslandLOSFilter(Faction* faction) {
+    std::list<Island*> nullList;
+    return nullList;
+}
+
+bool World::islandOnLOS(std::list<Island*>& filter) {
+    return true;
+}
+
+void World::worldInStringFormatForFaction(std::string& stringWorld, Faction* LOSFaction) {
+    if(unstarted) {
+        stringWorld = MSG::GAME_NOT_STRATED_YET;
+        return;
+    }
+    //make sure the string is empty
+    stringWorld.clear();
+    StrDP::StringDataStructure stringData;
+    //! FIRST FS SEGMENT
+    {
+        StrDP::FS first;
+        //This segment contains only unchanging information about the world.
+        //baseRegimentSupply
+        first.gs.push_back(std::to_string(baseRegimentSupply));
+        //baseBattleshipSupply
+        first.gs.push_back(std::to_string(baseBattleshipSupply));
+        //regimentRecoveryRate
+        first.gs.push_back(std::to_string(regimentRecoveryRate));
+        //shipRecoveryRate
+        first.gs.push_back(std::to_string(shipRecoveryRate));
+        //factions
+        StrDP::GS factionsData;
+        for( auto it = factions.begin(); it != factions.end(); it++ ) {
+            StrDP::RS factionData;
+            //faction name
+            factionData.us.push_back((*it).getName());
+            //faction color
+            factionData.us.push_back(std::to_string((*it).getColor()));
+            //faction capital island name
+            if((*it).getBaseIsland() == nullptr) {
+                std::cerr << "Error in worldInStringFormat(): a faction had no base island!\n";
+                stringWorld = MSG::SERVER_ERROR;
+                return;
+            }
+            factionData.us.push_back((*it).getBaseIsland()->getName());
+            factionsData.rs.push_back(factionData);
+        }
+        //first data section complete
+        first.gs.push_back(factionsData);
+        stringData.fs.push_back(first);
+    }
+    //! SECOND FS SEGMENT
+    {
+        //this segment contains all the players spesific data including preace treaties and treaty requests
+        StrDP::FS second;
+        //create the factions strings
+        StrDP::GS treaties;
+        //peace treaties already processed are saved in this blackList
+        //there ought to be a better way to do this than this...
+        std::vector<std::pair<Faction*, Faction*>> blackList;
+        for(auto it = factions.begin(); it != factions.end(); it++) {
+            for(auto ct = factions.begin(); ct != factions.end(); ct++) {
+                //if faction *it is allied with faction *ct
+                if( (*it).isAllyOf(&(*ct)) ) {
+                    bool isBlackListed = false;
+                    //if does not appear on blacklist
+                    for(auto kt = blackList.begin(); kt != blackList.end(); kt++) {
+                        if( ( (*kt).first == &(*it) && (*kt).second == &(*ct) ) || ( (*kt).first == &(*ct) && (*kt).second == &(*it) ) ) {
+                            isBlackListed = true;
+                        }
+                    }
+                    //if faction is ally and not on blacklist(that is, already listed in treaties)
+                    if(!isBlackListed) {
+                        StrDP::RS peace;
+                        //use us separation for faction names
+                        peace.us.push_back((*it).getName());
+                        peace.us.push_back((*ct).getName());
+                        //save treaty information as rs data
+                        treaties.rs.push_back(peace);
+                    }
+                }
+            }
+        }
+        second.gs.push_back(treaties);
+        StrDP::GS requests;
+        for(auto it = treatyRequests.begin(); it != treatyRequests.end(); it++) {
+            StrDP::RS requestUnit;
+            //save the faction names in the data as us fields
+            requestUnit.us.push_back( (*it).first->getName() );
+            requestUnit.us.push_back( (*it).second->getName() );
+            requests.rs.push_back(requestUnit);
+        }
+        second.gs.push_back(requests);
+        //second data section complete
+        stringData.fs.push_back(second);
+    }
+    //! THIRD FS SEGMENT
+    {
+        //third FS covers the island data and unit data within the islands
+        StrDP::FS third;
+        //this data has faction spesific information, as only some islands are in the
+        //LOS(Line Of Sight) of a faction
+        //this filter is used in indentyfying the islands, that are not in the line
+        //of sight, and those units are not displayed in the information
+        std::list<Island*> LOSfilter = getIslandLOSFilter(LOSFaction);
+        //handle rims as GS segments
+        for(auto it = rims.begin(); it != rims.end(); it++) {
+            StrDP::GS rimUnit;
+            //each rim contains n amount of islands: these islands' data is stored over
+            //multiple rs information, the last section contains troop information
+            //the beginning of a new island data is known because there are fixed amount
+            //of rs fields in an island
+            for(auto ct = (*it).islands.begin(); ct != (*it).islands.end(); ct++) {
+
+                //in the first RS is stored island name
+                rimUnit.rs.push_back( (*ct).getName() );
+                //following information is the island owner
+                if((*ct).getOwner() == nullptr) { rimUnit.rs.push_back(StrDP::RS()); }
+                else {
+                    rimUnit.rs.push_back( (*ct).getOwner()->getName() );
+                }
+                //third section is for island unit data
+                StrDP::RS unitSegment;
+                //if island is not on faction LOS, the unit data section will be empty
+                if(!islandOnLOS(LOSfilter)) {
+                    rimUnit.rs.push_back(unitSegment);
+                }
+                //else if player has line of sight to the island, reveal all troops it occupies
+                else {
+                    for( auto kt = (*ct).garrisons.begin(); kt != (*ct).garrisons.end();kt++ ) {
+                        for(auto lt = (*kt).regiments.begin(); lt != (*kt).regiments.end();lt++) {
+                            //regiment name
+                            unitSegment.us.push_back((*lt)->getName());
+                            //regiment condition
+                            unitSegment.us.push_back(std::to_string((*lt)->condition));
+                            //regiment movement order (island name)
+                            if( (*lt)->getTarget() == nullptr ) {
+                                unitSegment.us.push_back( StrDP::US("") );
+                            }
+                            else {
+                                unitSegment.us.push_back( (*lt)->getTarget()->getName() );
+                            }
+                        }
+                        for(auto lt = (*kt).battleships.begin(); lt != (*kt).battleships.end();lt++) {
+                            //battleship name
+                            unitSegment.us.push_back((*lt)->getName());
+                            //battleship condition
+                            unitSegment.us.push_back(std::to_string((*lt)->condition));
+                            //battleship movement order (island name)
+                            if( (*lt)->getTarget() == nullptr ) {
+                                unitSegment.us.push_back( StrDP::US("") );
+                            }
+                            else {
+                                unitSegment.us.push_back( (*lt)->getTarget()->getName() );
+                            }
+                        }
+                        for(auto lt = (*kt).spies.begin(); lt != (*kt).spies.end();lt++) {
+                            //spy name
+                            unitSegment.us.push_back((*lt)->getName());
+                            //spy condition(spies have no condition, so this is an empty string)
+                            unitSegment.us.push_back( StrDP::US() );
+                            //spy movement order (island name)
+                            if( (*lt)->getTarget() == nullptr ) {
+                                unitSegment.us.push_back( StrDP::US("") );
+                            }
+                            else {
+                                unitSegment.us.push_back( (*lt)->getTarget()->getName() );
+                            }
+                        }
+                    }
+                    rimUnit.rs.push_back(unitSegment);
+                }
+                //fourth and absolute final section is for linked islands data
+                StrDP::RS linkedIslandData;
+                std::list<Island*> linkedIslandsList = (*ct).getLinkedIslands();
+                for(auto kt = linkedIslandsList.begin(); kt != linkedIslandsList.end();kt++) {
+                    linkedIslandData.us.push_back( (*kt)->getName() );
+                }
+                rimUnit.rs.push_back(linkedIslandData);
+            }
+            third.gs.push_back(rimUnit);
+        }
+        //thid data section complete
+        stringData.fs.push_back(third);
+    }
+    //! FOURTH FS SEGMENT
+    {
+        StrDP::FS fourth;
+        //war declarations
+        StrDP::GS declarations;
+        for(auto it = warDeclarations.begin(); it != warDeclarations.end(); it++ ) {
+            StrDP::RS declaration;
+            declaration.us.push_back((*it).first->getName());
+            declaration.us.push_back((*it).second->getName());
+            declarations.rs.push_back( declaration );
+        }
+        fourth.gs.push_back(declarations);
+        stringData.fs.push_back(fourth);
+    }
+    stringData.toString(stringWorld);
+    stringData.printStringData();
+}
+
+std::string parseFactionCommand(std::string commandString, std::vector<std::string>& arguments, std::string& command, std::string& factionCode) {
+    arguments.clear();
+    //pick up the faction code part from the command string
+    int firstPoint = commandString.find_first_of(':');
+    if(firstPoint < 0) {
+        return MSG::COMMAND_SYNTAX_WAS_INVALID;
+    }
+    factionCode = commandString.substr(0, firstPoint);
+    commandString = commandString.substr(firstPoint+1);
+    //pick up the command name from the command string
+    int secondPoint = commandString.find_first_of(':');
+    if(secondPoint < 0) {
+        return MSG::COMMAND_SYNTAX_WAS_INVALID;
+    }
+    command = commandString.substr(0, secondPoint);
+    commandString = commandString.substr(secondPoint+1);
+    //pick up all the following arguments from the command string
+    while(true) {
+        //ARGUMENT SEPARATOR WILL BE CHANGED INTO SOME OTHER CHARACTER IN LATER DEVELOPMENT WHEN I'M NOT USING CONSOLES FOR SENDING MESSAGES
+        int nextPoint = commandString.find_first_of('%');
+        if(nextPoint < 0) {
+            break;
+        }
+        arguments.push_back(commandString.substr(0, nextPoint));
+        commandString = commandString.substr(nextPoint+1);
+    }
+    return "";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
