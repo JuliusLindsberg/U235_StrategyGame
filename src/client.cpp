@@ -772,3 +772,128 @@ bool Client::freeUnitButtons() {
     std::cout << "Client::freeUnitButtons() returning " << wasProblem << "\n";
     return wasProblem;
 }
+
+ClientSideThreadEncapsulation::ClientSideThreadEncapsulation() {
+    nextCommandId = 0;
+    subThreadActive = false;
+    subThreadKilled = false;
+    targetIp.clear();
+}
+
+void ClientSideThreadEncapsulation::setSubThreadActiveState(bool state) {
+    configMtx.lock();
+    subThreadActive = state;
+    configMtx.unlock();
+}
+
+void ClientSideThreadEncapsulation::killSubThread() {
+    configMtx.lock();
+    subThreadKilled = true;
+    configMtx.unlock();
+}
+
+bool ClientSideThreadEncapsulation::subThreadIsKilled() {
+    bool returnBool;
+    configMtx.lock();
+    returnBool = subThreadKilled;
+    configMtx.unlock();
+    return returnBool;
+}
+
+std::string ClientSideThreadEncapsulation::getTargetIp() {
+    configMtx.lock();
+    std::string returnString = targetIp;
+    configMtx.unlock();
+    return returnString;
+}
+
+void ClientSideThreadEncapsulation::setTargetIp(std::string ip) {
+    configMtx.lock();
+    targetIp = ip;
+    configMtx.unlock();
+}
+
+bool ClientSideThreadEncapsulation::subThreadIsActive() {
+    bool returnBool;
+    configMtx.lock();
+    returnBool = subThreadActive;
+    configMtx.unlock();
+    return returnBool;
+}
+
+void ClientSideThreadEncapsulation::addPendingCommand(const std::string& commandString, int id) {
+    pendingCommandMtx.lock();
+    std::pair<std::string, int> command;
+    command.first = commandString;
+    command.second = id;
+    pendingCommands.push_back(command);
+    std::cout << "command '" << command.first << "' added to pending commands\n";
+    pendingCommandMtx.unlock();
+}
+
+ClientFaction* ClientWorld::getFactionFromName(std::string name) {
+    for(auto it = factions.begin(); it != factions.end(); it++) {
+        if(name == (*it).name) {
+            return &(*it);
+        }
+    }
+    return nullptr;
+}
+
+ClientIsland* ClientWorld::getIslandFromName(std::string name) {
+    for(auto it = islands.begin(); it != islands.end(); it++) {
+        if( (*it).name == name ) {
+            return &(*it);
+        }
+    }
+    return nullptr;
+}
+
+IslandButton::IslandButton(sf::CircleShape shape, Client* _client, purriGUI::GUI* _hud, ClientIsland* _island, purriGUI::SignalListener* slot): Interactable(shape, _hud, slot) {
+    island = _island;
+    client = _client;
+    setClickingExclusiveSelectsState(true);
+    //init nameText
+    if(_island == NULL) {
+        std::cerr << "Error in IslandButton contsrutctor: NULL pointer was inserted into this function\n";
+        return;
+    }
+    nameText.setString(_island->name);
+    nameText.setCharacterSize(ISLAND_NAME_TEXT_FONT_SIZE);
+    nameText.setFillColor(sf::Color::Black);
+    nameText.setFont(*(_hud->getFont()));
+    nameText.setPosition(shape.getPosition().x, shape.getPosition().y);
+    nameText.setOrigin(_island->name.size()*ISLAND_NAME_TEXT_FONT_SIZE*FONT_SIZE_TO_CHARACTER_SIZE_RATIO/2, ISLAND_NAME_TEXT_HOVER_HEIGHT);
+}
+
+IslandButton* IslandButton::createIslandButton(purriGUI::GUI& hud, Client* _client, sf::CircleShape shape, ClientIsland* _island, purriGUI::SignalListener* slot) {
+    IslandButton* islandButton = new IslandButton(shape, _client, &hud, _island, slot);
+    hud.addInteractableToList((Interactable*)islandButton);
+    return islandButton;
+}
+
+UnitButton::UnitButton(sf::RectangleShape shape, purriGUI::GUI* _hud, sf::Text _buttonText, ClientUnit* _unit, purriGUI::SignalListener* slot): Button(shape, _hud, _buttonText, slot) {
+    std::cout << "creating new UnitButton\n";
+    unit = _unit;
+    setClickingExclusiveSelectsState(false);
+    setDeselectingTriggers(true);
+    setSelectingTriggers(true);
+    setXorSelectMode(true);
+}
+
+UnitButton* UnitButton::createUnitButton(purriGUI::GUI* gui, sf::RectangleShape shape, sf::Text _buttonText, ClientUnit* _unit, purriGUI::SignalListener* slot) {
+    UnitButton* unitButton = new UnitButton(shape, gui, _buttonText, _unit, slot);
+    gui->addInteractableToList((Interactable*)unitButton);
+    return unitButton;
+}
+
+CommandSenderListener::CommandSenderListener( sf::Text* _commandText, Client* _client ) {
+    commandText = _commandText;
+    client = _client;
+}
+
+CommandSenderListener* CommandSenderListener::createCommandSenderListener(purriGUI::GUI& hud, sf::Text* _commandText, Client* _client) {
+    CommandSenderListener* listener = new CommandSenderListener(_commandText, _client);
+    hud.addListenerToList((SignalListener*)listener);
+    return listener;
+}

@@ -212,61 +212,14 @@ namespace purriGUI {
         }
         void loopMe(sf::RenderWindow& window);
         void selectExclusively();
-        void select() {
-            if(xorSelectMode) {
-                if(selected) {
-                    deselect();
-                    return;
-                }
-            }
-            if( selectingTriggers ) {
-                if( signalSlot != nullptr ) {
-                    signalSlot->trigger();
-                }
-            }
-            selected = true;
-            onSelection();
-        }
-        void deselect() {
-            selected = false;
-            if( deselectingTriggers ) {
-                if(signalSlot != nullptr) {
-                    signalSlot->trigger();
-                }
-            }
-            onDeselection();
-        }
+        void select();
+        void deselect();
         virtual void loopChildFunctionality(sf::RenderWindow& window) {}
         virtual void onForwardedText(sf::String textForwarded) {}
         virtual void onForwardedKeyEvents(sf::Event::KeyEvent keyEvent);
 
-        Interactable(sf::CircleShape buttonMesh, GUI* _hud, SignalListener* _signalSlot) {
-            buttonMesh.setOrigin(buttonMesh.getRadius(), buttonMesh.getRadius());
-            reactionShape = std::unique_ptr<ButtonShape>((ButtonShape*)new CircleButtonShape(buttonMesh));
-            activate();
-            dead = false;
-            clickingExclusiveSelects = false;
-            hud = _hud;
-            selected = false;
-            signalSlot = _signalSlot;
-            selectingTriggers = true;
-            deselectingTriggers = false;
-            xorSelectMode = false;
-            freed = false;
-        }
-        Interactable(sf::RectangleShape buttonMesh, GUI* _hud, SignalListener* _signalSlot) {
-            reactionShape = std::unique_ptr<ButtonShape>((ButtonShape*)new RectangleButtonShape(buttonMesh));
-            activate();
-            hud = _hud;
-            dead = false;
-            clickingExclusiveSelects = false;
-            selected = false;
-            signalSlot = _signalSlot;
-            selectingTriggers = true;
-            deselectingTriggers = false;
-            xorSelectMode = false;
-            freed = false;
-        }
+        Interactable(sf::CircleShape buttonMesh, GUI* _hud, SignalListener* _signalSlot);
+        Interactable(sf::RectangleShape buttonMesh, GUI* _hud, SignalListener* _signalSlot);
         virtual ~Interactable() {}
     };
     //console is always a rectangle shape. It has input field either at the bottom or top
@@ -337,27 +290,16 @@ namespace purriGUI {
     class Button: public Interactable {
     public:
         sf::Text buttonText;
-        //void initButton();
         Button(sf::CircleShape shape, GUI* _hud, sf::Text _buttonText, SignalListener* slot = nullptr): Interactable(shape, _hud, slot) {
             buttonText = _buttonText;
-            //initButton();
         }
         Button(sf::RectangleShape shape, GUI* _hud, sf::Text _buttonText,  SignalListener* slot = nullptr): Interactable(shape, _hud, slot) {
             buttonText = _buttonText;
-            //initButton();
         }
         virtual ~Button() {
         }
-        static Button* createButton(purriGUI::GUI& hud, sf::CircleShape shape, sf::Text text, SignalListener* slot = nullptr) {
-            Button* button = new Button(shape, &hud, text, slot);
-            hud.addInteractableToList((Interactable*)button);
-            return button;
-        }
-        static Button* createButton(purriGUI::GUI& hud, sf::RectangleShape shape, sf::Text text, SignalListener* slot = nullptr) {
-            Button* button = new Button(shape, &hud, text, slot);
-            hud.addInteractableToList((Interactable*)button);
-            return button;
-        }
+        static Button* createButton(purriGUI::GUI& hud, sf::CircleShape shape, sf::Text text, SignalListener* slot = nullptr);
+        static Button* createButton(purriGUI::GUI& hud, sf::RectangleShape shape, sf::Text text, SignalListener* slot = nullptr);
         virtual void loopChildFunctionality(sf::RenderWindow& window) {
             window.draw(buttonText);
         }
@@ -372,6 +314,8 @@ namespace purriGUI {
         static Button* createButton(purriGUI::GUI& hud, sf::CircleShape shape, sf::Text text, SignalListener* slot = nullptr);
         static Button* createButton(purriGUI::GUI& hud, sf::RectangleShape shape, sf::Text text, SignalListener* slot = nullptr);
     public:
+        static TextField* createTextField(purriGUI::GUI& hud, sf::RectangleShape shape, sf::Text defaultText, SignalListener* slot = nullptr);
+        TextField(sf::RectangleShape shape, GUI* _hud, sf::Text defaultText, SignalListener* _listener);
         void setSelectingEmpties(bool value) {
             selectingEmpties = value;
         }
@@ -386,17 +330,6 @@ namespace purriGUI {
         }
         virtual void onForwardedText(sf::String textForwarded) {
             buttonText.setString(purriGUI::handleTextInput(textForwarded, buttonText.getString()));
-        }
-        static TextField* createTextField(purriGUI::GUI& hud, sf::RectangleShape shape, sf::Text defaultText, SignalListener* slot = nullptr) {
-            TextField* textField = new TextField(shape, &hud, defaultText, slot);
-            hud.addInteractableToList((Interactable*)textField);
-            return textField;
-        }
-        TextField(sf::RectangleShape shape, GUI* _hud, sf::Text defaultText, SignalListener* _listener): Button(shape, _hud, defaultText, _listener) {
-            setClickingExclusiveSelectsState(true);
-            selectingEmpties = false;
-            firstSelect = true;
-            firstSelectingEmpties = true;
         }
         virtual void onSelection() {
             if(selectingEmpties || (firstSelect && firstSelectingEmpties) ) {
@@ -417,21 +350,11 @@ namespace purriGUI {
             positionSinceLastChangedCall = 0;
         }
         virtual ~MenuSwitchListener() {}
-        static MenuSwitchListener* createMenuSwitchListener( GUI& hud) {
-            MenuSwitchListener* listener = new MenuSwitchListener();
-            hud.addListenerToList((SignalListener*)listener);
-            return listener;
-        }
+        static MenuSwitchListener* createMenuSwitchListener( GUI& hud);
         virtual void onTrigger() {
             menuSwitch = !menuSwitch;
         }
-        bool menuSwitchChanged(sf::Time currentTime) {
-            if(menuSwitch != positionSinceLastChangedCall) {
-                positionSinceLastChangedCall = menuSwitch;
-                return true;
-            }
-            return false;
-        }
+        bool menuSwitchChanged(sf::Time currentTime);
         int getMenuSwitch() {
             return menuSwitch;
         }
@@ -444,11 +367,7 @@ namespace purriGUI {
             ready = false;
         }
         virtual ~InputBox() {}
-        static InputBox* createInputBox( GUI& hud) {
-            InputBox* listener = new InputBox();
-            hud.addListenerToList((SignalListener*)listener);
-            return listener;
-        }
+        static InputBox* createInputBox( GUI& hud);
         bool isReady() {
             return ready;
         }

@@ -72,61 +72,19 @@ class ClientSideThreadEncapsulation {
     bool handlePendingCommand();
 protected:
 
-    ClientSideThreadEncapsulation() {
-        nextCommandId = 0;
-        subThreadActive = false;
-        subThreadKilled = false;
-        targetIp.clear();
-    }
+    ClientSideThreadEncapsulation();
     //returns false if there are no CommandResponses left
     bool fetchNextCommandResponse( CommandResponse& response );
 
-    void setSubThreadActiveState(bool state) {
-        configMtx.lock();
-        subThreadActive = state;
-        configMtx.unlock();
-    }
-    void killSubThread() {
-        configMtx.lock();
-        subThreadKilled = true;
-        configMtx.unlock();
-    }
+    void setSubThreadActiveState(bool state);
+    void killSubThread();
     bool sendCommandToHost(std::string command, int attempNumber);
 public:
-    bool subThreadIsKilled() {
-        bool returnBool;
-        configMtx.lock();
-        returnBool = subThreadKilled;
-        configMtx.unlock();
-        return returnBool;
-    }
-    std::string getTargetIp() {
-        configMtx.lock();
-        std::string returnString = targetIp;
-        configMtx.unlock();
-        return returnString;
-    }
-    void setTargetIp(std::string ip) {
-        configMtx.lock();
-        targetIp = ip;
-        configMtx.unlock();
-    }
-    bool subThreadIsActive() {
-        bool returnBool;
-        configMtx.lock();
-        returnBool = subThreadActive;
-        configMtx.unlock();
-        return returnBool;
-    }
-    void addPendingCommand(const std::string& commandString, int id) {
-        pendingCommandMtx.lock();
-        std::pair<std::string, int> command;
-        command.first = commandString;
-        command.second = id;
-        pendingCommands.push_back(command);
-        std::cout << "command '" << command.first << "' added to pending commands\n";
-        pendingCommandMtx.unlock();
-    }
+    bool subThreadIsKilled();
+    std::string getTargetIp();
+    void setTargetIp(std::string ip);
+    bool subThreadIsActive();
+    void addPendingCommand(const std::string& commandString, int id);
     static void clientListenThread(Client* client);
 };
 
@@ -175,22 +133,8 @@ struct ClientWorld: public WorldData {
     }
     //this function creates a client-side representation of the world from a string that can be sent through the internet
     void refreshFromString(std::string& worldString);
-    ClientFaction* getFactionFromName(std::string name) {
-        for(auto it = factions.begin(); it != factions.end(); it++) {
-            if(name == (*it).name) {
-                return &(*it);
-            }
-        }
-        return nullptr;
-    }
-    ClientIsland* getIslandFromName(std::string name) {
-        for(auto it = islands.begin(); it != islands.end(); it++) {
-            if( (*it).name == name ) {
-                return &(*it);
-            }
-        }
-        return nullptr;
-    }
+    ClientFaction* getFactionFromName(std::string name);
+    ClientIsland* getIslandFromName(std::string name);
     void debugPrint();
 };
 
@@ -201,31 +145,10 @@ protected:
     Client* client;
 
 public:
-    IslandButton(sf::CircleShape shape, Client* _client, purriGUI::GUI* _hud, ClientIsland* _island, purriGUI::SignalListener* slot = nullptr): Interactable(shape, _hud, slot) {
-        island = _island;
-        client = _client;
-        setClickingExclusiveSelectsState(true);
-        //init nameText
-        if(_island == NULL) {
-            std::cerr << "Error in IslandButton contsrutctor: NULL pointer was inserted into this function\n";
-            return;
-        }
-        nameText.setString(_island->name);
-        nameText.setCharacterSize(ISLAND_NAME_TEXT_FONT_SIZE);
-        nameText.setFillColor(sf::Color::Black);
-        nameText.setFont(*(_hud->getFont()));
-        nameText.setPosition(shape.getPosition().x, shape.getPosition().y);
-        nameText.setOrigin(_island->name.size()*ISLAND_NAME_TEXT_FONT_SIZE*FONT_SIZE_TO_CHARACTER_SIZE_RATIO/2, ISLAND_NAME_TEXT_HOVER_HEIGHT);
-    }
-    ClientIsland* getClientIsland() {
-        return island;
-    }
+    IslandButton(sf::CircleShape shape, Client* _client, purriGUI::GUI* _hud, ClientIsland* _island, purriGUI::SignalListener* slot = nullptr);
+    ClientIsland* getClientIsland() { return island; }
     virtual ~IslandButton(){}
-    static IslandButton* createIslandButton(purriGUI::GUI& hud, Client* _client, sf::CircleShape shape, ClientIsland* _island, purriGUI::SignalListener* slot = nullptr) {
-        IslandButton* islandButton = new IslandButton(shape, _client, &hud, _island, slot);
-        hud.addInteractableToList((Interactable*)islandButton);
-        return islandButton;
-    }
+    static IslandButton* createIslandButton(purriGUI::GUI& hud, Client* _client, sf::CircleShape shape, ClientIsland* _island, purriGUI::SignalListener* slot = nullptr);
     virtual void onSelection();
     virtual void loopChildFunctionality(sf::RenderWindow& window) {
         window.draw(nameText);
@@ -235,22 +158,11 @@ public:
 class UnitButton: public purriGUI::Button {
 public:
     ClientUnit* unit;
-    UnitButton(sf::RectangleShape shape, purriGUI::GUI* _hud, sf::Text _buttonText, ClientUnit* _unit, purriGUI::SignalListener* slot = nullptr): Button(shape, _hud, _buttonText, slot) {
-        std::cout << "creating new UnitButton\n";
-        unit = _unit;
-        setClickingExclusiveSelectsState(false);
-        setDeselectingTriggers(true);
-        setSelectingTriggers(true);
-        setXorSelectMode(true);
-    }
+    UnitButton(sf::RectangleShape shape, purriGUI::GUI* _hud, sf::Text _buttonText, ClientUnit* _unit, purriGUI::SignalListener* slot = nullptr);
     virtual ~UnitButton() {
         std::cout << "deleting UnitButton\n";
     }
-    static UnitButton* createUnitButton(purriGUI::GUI* gui, sf::RectangleShape shape, sf::Text _buttonText, ClientUnit* _unit, purriGUI::SignalListener* slot = nullptr) {
-        UnitButton* unitButton = new UnitButton(shape, gui, _buttonText, _unit, slot);
-        gui->addInteractableToList((Interactable*)unitButton);
-        return unitButton;
-    }
+    static UnitButton* createUnitButton(purriGUI::GUI* gui, sf::RectangleShape shape, sf::Text _buttonText, ClientUnit* _unit, purriGUI::SignalListener* slot = nullptr);
 };
 
 class IslandListener: public purriGUI::SignalListener {
@@ -308,16 +220,9 @@ class CommandSenderListener: public purriGUI::SignalListener {
     sf::Text* commandText;
     Client* client;
 public:
-    CommandSenderListener( sf::Text* _commandText, Client* _client ) {
-        commandText = _commandText;
-        client = _client;
-    }
+    CommandSenderListener( sf::Text* _commandText, Client* _client );
     virtual ~CommandSenderListener() {}
-    static CommandSenderListener* createCommandSenderListener(purriGUI::GUI& hud, sf::Text* _commandText, Client* _client) {
-        CommandSenderListener* listener = new CommandSenderListener(_commandText, _client);
-        hud.addListenerToList((SignalListener*)listener);
-        return listener;
-    }
+    static CommandSenderListener* createCommandSenderListener(purriGUI::GUI& hud, sf::Text* _commandText, Client* _client);
     virtual void onTrigger() {
         if(commandText == nullptr || client == nullptr) {
             return;

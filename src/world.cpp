@@ -1106,25 +1106,14 @@ std::string parseFactionCommand(std::string commandString, std::vector<std::stri
     return "";
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+bool Faction::isAllyOf(Faction* faction) {
+    if(faction == NULL) {
+        std::cerr << "Error in Faction::isAllyOf(): a null pointer was passed into this function as argument\n";
+    }
+    for(auto it = allies.begin(); it != allies.end(); it++) {
+        if( faction == (*it) ) {
+            return true;
+        }
+    }
+    return false;
+}

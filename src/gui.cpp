@@ -325,3 +325,102 @@ void purriGUI::GUI::destroyFreedObjects() {
     }
     std::cout << "destroyingFreedObjects returning \n";
 }
+
+void purriGUI::Interactable::select() {
+    if(xorSelectMode) {
+        if(selected) {
+            deselect();
+            return;
+        }
+    }
+    if( selectingTriggers ) {
+        if( signalSlot != nullptr ) {
+            signalSlot->trigger();
+        }
+    }
+    selected = true;
+    onSelection();
+}
+
+void purriGUI::Interactable::deselect() {
+    selected = false;
+    if( deselectingTriggers ) {
+        if(signalSlot != nullptr) {
+            signalSlot->trigger();
+        }
+    }
+    onDeselection();
+}
+
+purriGUI::Interactable::Interactable(sf::CircleShape buttonMesh, GUI* _hud, SignalListener* _signalSlot) {
+    buttonMesh.setOrigin(buttonMesh.getRadius(), buttonMesh.getRadius());
+    reactionShape = std::unique_ptr<ButtonShape>((ButtonShape*)new CircleButtonShape(buttonMesh));
+    activate();
+    dead = false;
+    clickingExclusiveSelects = false;
+    hud = _hud;
+    selected = false;
+    signalSlot = _signalSlot;
+    selectingTriggers = true;
+    deselectingTriggers = false;
+    xorSelectMode = false;
+    freed = false;
+}
+purriGUI::Interactable::Interactable(sf::RectangleShape buttonMesh, GUI* _hud, SignalListener* _signalSlot) {
+    reactionShape = std::unique_ptr<ButtonShape>((ButtonShape*)new RectangleButtonShape(buttonMesh));
+    activate();
+    hud = _hud;
+    dead = false;
+    clickingExclusiveSelects = false;
+    selected = false;
+    signalSlot = _signalSlot;
+    selectingTriggers = true;
+    deselectingTriggers = false;
+    xorSelectMode = false;
+    freed = false;
+}
+
+purriGUI::Button* purriGUI::TextField::createButton(purriGUI::GUI& hud, sf::CircleShape shape, sf::Text text, SignalListener* slot) {
+    Button* button = new Button(shape, &hud, text, slot);
+    hud.addInteractableToList((Interactable*)button);
+    return button;
+}
+
+purriGUI::Button* purriGUI::TextField::createButton(purriGUI::GUI& hud, sf::RectangleShape shape, sf::Text text, SignalListener* slot) {
+    Button* button = new Button(shape, &hud, text, slot);
+    hud.addInteractableToList((Interactable*)button);
+    return button;
+}
+
+purriGUI::TextField* purriGUI::TextField::createTextField(purriGUI::GUI& hud, sf::RectangleShape shape, sf::Text defaultText, SignalListener* slot) {
+    TextField* textField = new TextField(shape, &hud, defaultText, slot);
+    hud.addInteractableToList((Interactable*)textField);
+    return textField;
+}
+
+purriGUI::TextField::TextField(sf::RectangleShape shape, GUI* _hud, sf::Text defaultText, SignalListener* _listener): Button(shape, _hud, defaultText, _listener) {
+    setClickingExclusiveSelectsState(true);
+    selectingEmpties = false;
+    firstSelect = true;
+    firstSelectingEmpties = true;
+}
+
+purriGUI::MenuSwitchListener* purriGUI::MenuSwitchListener::createMenuSwitchListener( GUI& hud) {
+    MenuSwitchListener* listener = new MenuSwitchListener();
+    hud.addListenerToList((SignalListener*)listener);
+    return listener;
+}
+
+bool purriGUI::MenuSwitchListener::menuSwitchChanged(sf::Time currentTime) {
+    if(menuSwitch != positionSinceLastChangedCall) {
+        positionSinceLastChangedCall = menuSwitch;
+        return true;
+    }
+    return false;
+}
+
+purriGUI::InputBox* purriGUI::InputBox::createInputBox( GUI& hud) {
+    InputBox* listener = new InputBox();
+    hud.addListenerToList((SignalListener*)listener);
+    return listener;
+}

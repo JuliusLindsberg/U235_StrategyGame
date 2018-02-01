@@ -8,21 +8,17 @@ std::string Namesystem::getName() {
     }
 
     if(!uniqueNames) {
-        //std::cout << "not using unique names!\n";
         int nameIndex = random(names.size()-1);
         return names[nameIndex];
     }
 
     else {
-        //std::cout << "using unique names!\n";
-        // seuraavat koodin kuvailemattomat numeroarvot liittyvät ascii-koodistoon ja englanninkielisiin aakkosiin
         unsigned nameIndex = random(names.size()-1);
         std::string nextName;
         used[nameIndex]++;
         if(used[nameIndex] != 1) {
-            //std::cout << "used[nameIndex != 1]\n";
-            //tämä varmistaa, että nimet eivät koskaan ole samanlaisia, eivätkä myöskään mene yli charin numeromäärän
-            //tosin nimien esteettinen vaikutus saattaa kärsiä tästä, mutta jos tämä varotoimenpide tulee tarpeeseen, on nimiä ollut jo muutenkin liian vähän
+            //this ensures that there will no be two identical names, now will they ever go over the numeric value of 8-bit char
+            //however, the aesthetical character of such names might suffer, but this precautionary step will practically only happen when there are not enough names present in list
             if(used[nameIndex] > 56) {
                 names[nameIndex] = "New " + names[nameIndex];
                 used[nameIndex] = 0;
@@ -32,32 +28,40 @@ std::string Namesystem::getName() {
             nextName = names[nameIndex] + ' ' + nameAdditionChar;
         }
         else {
-            //std::cout << "else\n";
             nextName = names[nameIndex];
-            /*
-            what was this code doing right here???
-            char transformingChar;
-            //nextName = names[nameIndex];
-            // 2 jos nimi on käytetty aikaisemmin, nimetään uusi [x 2]:ksi
-            if(used[nameIndex] < 3) {
-                transformingChar = (char)used[nameIndex];
-            }
-            //jos on enemmän kuin 2 instanssia, käytetään nimeämiseen isoja aakkosia
-            else if(used[nameIndex] > 2 && used[nameIndex] < 30) {
-                transformingChar = (char)used[nameIndex]+57;
-            }
-            //kun isot aakkoset ovat loppuneet, käytetään loput char-8 sopivat luvut
-            //jos nämä lisänimet eivät riitä, joko on käynyt ERITTÄIN huono tuuri nimilistan käytön kanssa, tai nimiä on vain liian vähän.
-            //kuitenkin, koska nimijärjestelmä on luvannut samannimisien olevan mahdottomuus, laitetaan tällaisessa tilanteessa alkupereäiseen nimeen New-lisäliite,
-            //ja alotetaan numero ja aakkoslisätunnusten iterointi alusta uniikkiuden varmistamiseksi.
-            // Esim. New New New New Washington 15 olisi mahdollinen nimi tällä nimisysteemillä, jos Washington oli alkuperäisessä nimilistassa
-            else {
-                transformingChar = (char)used[nameIndex]-26;
-            }
-            nextName = names[nameIndex]+" " + transformingChar;
-            */
         }
-        //std::cout << "getName() returning: '" << nextName << "'\n";
         return nextName;
+    }
+}
+
+Namesystem::Namesystem(std::string nameFileName, bool _uniqueNames) {
+    uniqueNames = _uniqueNames;
+    std::fstream file;
+    file.open(nameFileName.c_str(), std::ios_base::in);
+    if(file.is_open()) {
+        std::string properName;
+        properName.clear();
+        while(getline(file, properName)) {
+            names.push_back(properName);
+        }
+        file.close();
+    }
+    else {
+        std::cerr << "Error in Namesystem: opening file " << nameFileName.c_str() << " failed, are you sure the textfile is in the right place?\n Prehaps you just forgot to add .txt to the end of the filename\n";
+        std::cerr << "Creating 100 random ascii 'names' instead, due to file not opening properly.\n";
+        for(unsigned a=0;a<100;a++) {
+            std::string asciiName;
+            asciiName.clear();
+            for(unsigned i=0;i<6;i++) {
+                asciiName.push_back((char)random(250));
+            }
+            names.push_back(asciiName);
+        }
+    }
+
+    //we ensure that every element of the vector has been initialised
+    used.reserve(names.size());
+    for(unsigned i=0;i<names.size();i++) {
+        used.push_back(0);
     }
 }
