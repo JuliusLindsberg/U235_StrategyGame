@@ -520,11 +520,11 @@ public:
     Spy* getSpyFromName(std::string spyName);
     bool isDeclaringWar(Faction* subject, Faction* object);
 
-    //saves the data of the whole world in a single std::string
-    //LOSFaction can be left as null for global vision
 private:
     std::string startWorld(unsigned _rimAmount, int islandness, int _falloutTime, float _baseRegimentSupply, float _baseBattleshipSupply,
     unsigned _spyAmount, int _regimentRecoveryRate, int _shipRecoveryRate, std::string worldName);
+    //shows the game state of the whole game world in a single std::string
+    //LOSFaction can be left as null for global vision
     void worldInStringFormatForFaction(std::string& stringWorld, Faction* LOSFaction = nullptr);
     float getDominance(Faction* faction);
     bool checkFactionCodeValidity(std::string factionCode);

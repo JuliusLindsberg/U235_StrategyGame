@@ -155,10 +155,6 @@ IslandButton* Client::getIslandButtonFromClientIsland(ClientIsland* island) {
 }
 
 void Client::runClient() {
-    sf::Font ubuntuFont;
-    if(!ubuntuFont.loadFromFile("UbuntuMono-R.ttf")) {
-        std::cerr << "Error: font UbuntuMono-R.ttf failed to load!\n";
-    }
     pingHost = false;
 
     sf::Clock clock;
@@ -180,7 +176,7 @@ void Client::runClient() {
 
     buttonText.setCharacterSize(20);
     buttonText.setFillColor(sf::Color::White);
-    buttonText.setFont(ubuntuFont);
+    buttonText.setFont(*gui.getFont());
     buttonText.setPosition(buttonShape.getPosition() + sf::Vector2f(5, 0));
     std::string lastIpString = getStringFromFile(LAST_HOST_IP_FILENAME);
 
@@ -223,19 +219,12 @@ void Client::runClient() {
 
     clock.restart();
     while(window.isOpen()) {
-
         sf::Time loopTime = clock.getElapsedTime();
-
         sf::Event event;
-
         handleCommandResponses();
-
         while(window.pollEvent(event)) {
-
             gui.handleGUIEventActions(event);
-
             switch(event.type) {
-
             case sf::Event::Closed:
                 {
                     window.close();
@@ -259,16 +248,18 @@ void Client::runClient() {
         //}
         //window.draw(buttonShape);
         ///GUI SIGNAL HANDLING
-        if(hostIpInputSignal->isReady()) {
-            //if the user has inputted the hosts ip, try to 'ping' it in order to get information about host
-            setTargetIp(hostIpField->buttonText.getString().toAnsiString());
-            addPendingCommand("#p", 0);
-            hostIpInputSignal->setReady(false);
-        }
-        if(factionNameInputSignal->isReady()) {
-            addPendingCommand("#j" + factionNameField->buttonText.getString().toAnsiString(), 0);
-            factionNameInputSignal->setReady(false);
-        }
+            if(hostIpInputSignal->isReady()) {
+                //if the user has inputted the hosts ip, try to 'ping' it in order to get information about host
+                setTargetIp(hostIpField->buttonText.getString().toAnsiString());
+                addPendingCommand("#p", 0);
+                hostIpInputSignal->setReady(false);
+            }
+            if(factionNameInputSignal->isReady()) {
+                if(factionNameField != nullptr) {
+                    addPendingCommand("#j" + factionNameField->buttonText.getString().toAnsiString(), 0);
+                }
+                factionNameInputSignal->setReady(false);
+            }
         if(pingHost) {
             if(loopTime > lastPing) {
                 lastPing = loopTime+sf::seconds(PING_COOLDOWN_TIME_IN_SECONDS);
@@ -521,7 +512,7 @@ bool ClientSideThreadEncapsulation::sendCommandToHost(std::string command, int a
     //establish a tcp connection and send the string. Then listen for feedback string
     //and add it to the commandResponds list
     //copy all the data the thread uses to different variables so that the blocking parts of the function won't stall the main thread
-    std::cout << "Sending Command To Host in ip " << getTargetIp() << "\n";
+    std::cout << "Sending Command '"<< command <<"' To Host in ip " << getTargetIp() << "\n";
     if(!subThreadIsActive()) {
         return false;
     }
@@ -551,7 +542,7 @@ bool ClientSideThreadEncapsulation::sendCommandToHost(std::string command, int a
     char* returnStringBegin = &databuffer[0];
     response.response = returnStringBegin;
     response.id = attemptNumber;
-    response.commmand = command;
+    response.command = command;
     std::cout << "response recieved from host: " << response.response << "\n";
     commandResponses.push_back( response );
     commandRespondMtx.unlock();
@@ -598,13 +589,14 @@ bool ClientSideThreadEncapsulation::handlePendingCommand() {
     return true;
 }
 
-void Client::handleClientNonFactionCommandResponses(CommandResponse response) {
+void Client::handleNonFactionCommandResponses(CommandResponse response) {
     // non-faction commands are identified with the second letter in the command sting
-    switch(response.commmand[1]) {
+    switch(response.command[1]) {
         //ping command
     case 'p':
         {
-            hostIpField->setActiveState(false);
+            hostIpField->deactivate();
+            factionNameField->deactivate();
             if(response.response == MSG::RUNNING) {
                 if(factionCode != "") {
                     addPendingCommand( factionCode + ":gamestate:", 0);
@@ -647,6 +639,10 @@ void Client::handleClientNonFactionCommandResponses(CommandResponse response) {
     case 'j':
         {
             if(response.response.size() != FACTION_CODE_LENGTH) {
+                if(response.response == MSG::GAME_ALREADY_IN_PROGRESS) {
+                    std::cout << "IMPLEMENT GAME ALREADY IN PROGRESS FUNCTIONALITY HERE!\n";
+                    break;
+                }
                 std::cerr << "Error in Client::handleClientNonFactionCommandResponses(): potential bug in server responses; command response was not faction code in a #j command, it was instead " << response.response <<"!\n";
             }
             else {
@@ -661,6 +657,7 @@ void Client::handleClientNonFactionCommandResponses(CommandResponse response) {
             if(response.response != "") {
                 std::cerr << "Error in Client::handleClientNonFactionCommandResponses(): " << response.response << " returned in a #v command!\n";
             }
+
             pingHost = true;
             break;
         }
@@ -671,10 +668,10 @@ void Client::handleClientNonFactionCommandResponses(CommandResponse response) {
         }
     }
 }
-void Client::handleClientFactionCommandResponses(CommandResponse response) {
+void Client::handleFactionCommandResponses(CommandResponse response) {
     std::string factionCode, command;
     std::vector<std::string> arguments;
-    if( parseFactionCommand(response.commmand, arguments, command, factionCode) != "") {
+    if( parseFactionCommand(response.command, arguments, command, factionCode) != "") {
         //the command is something weird
         std::cerr << "Error in Client::handleCommandResponses(): faction command inserted was not properly formed!\n";
         return;
@@ -693,17 +690,18 @@ void Client::handleCommandResponses() {
     //fetchNextCommandResponse returns false when there are no CommandResponses left
     while(fetchNextCommandResponse(currentResponse)) {
         //if the command is a non-faction command
-        if( currentResponse.commmand[0] == '#' ) {
-            if( currentResponse.commmand.size() == 1 ) {
+        if(currentResponse.command.size() < 1) { std::cerr << "Error in handleCommandResponses(): command sent was empty!\n"; }
+        if( currentResponse.command[0] == '#' ) {
+            if( currentResponse.command.size() == 1 ) {
                 std::cerr << "Error in Client::handleCommandResponses(): non-faction command insterted was poorly formed\n";
                 return;
             }
             //handle non-faction command feedbacks
-            handleClientNonFactionCommandResponses(currentResponse);
+            handleNonFactionCommandResponses(currentResponse);
             return;
         }
         //if the command is a faction command
-        handleClientFactionCommandResponses(currentResponse);
+        handleFactionCommandResponses(currentResponse);
     }
 }
 

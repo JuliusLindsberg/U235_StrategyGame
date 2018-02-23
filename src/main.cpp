@@ -57,8 +57,8 @@ int main()
         else if(userInput == 'c' || userInput == 'C') {
             //Initiate client
             sf::Font ubuntuFont;
-            if(!ubuntuFont.loadFromFile("UbuntuMono-R.ttf")) {
-                std::cerr << "Error: font UbuntuMono-R.ttf failed to load!\n";
+            if(!ubuntuFont.loadFromFile("resources/UbuntuMono-R.ttf")) {
+                std::cerr << "Error: font resources/UbuntuMono-R.ttf failed to load!\n";
             }
             Client client(&ubuntuFont, 10);
             client.runClient();

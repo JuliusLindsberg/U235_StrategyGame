@@ -6,9 +6,9 @@ bool purriGUI::GUI::freeInteractable(purriGUI::Interactable* interactable) {
         std::cerr << "Error in purriGUI::GUI::freeInteractable(): null pointer inserted into function!\n";
         return false;
     }
-    purriGUI::Interactable* interactablePointer = /*(purriGUI::Interactable*)*/interactable;
+    purriGUI::Interactable* interactablePointer = interactable;
     //check if the said pointer even exists in the gui, if it doesn't, the gui should be able to communicate an exception with the host program
-    for(auto it = interactables.begin(); it != interactables.end(); it ++) {
+    for(auto it = interactables.begin(); it != interactables.end(); it++) {
         if((*it) == interactablePointer) {
             (*it)->free();
             return true;
@@ -296,25 +296,30 @@ std::pair<purriGUI::DrawableData, sf::Drawable*>* purriGUI::GUI::addDrawableToLi
 }
 
 void purriGUI::GUI::destroyFreedObjects() {
-    std::cout << "destroying listeners\n";
+    //std::cout << "destroying listeners\n";
     for(auto it = listeners.begin(); it != listeners.end();) {
         if((*it)->isFreed()) {
+            std::cout << "deleting listener... ";
             delete (*it);
             it = listeners.erase(it);
+            std::cout << "listener DELETED!\n";
             continue;
         }
         it++;
     }
-    std::cout << "destroying interactables\n";
+    //std::cout << "destroying interactables\n";
     for(auto it = interactables.begin(); it != interactables.end();) {
         if((*it)->isFreed()) {
+            //std::cout << "deleting interactable... ";
             delete (*it);
+            //std::cout << "...delete command trough!... ";
             it = interactables.erase(it);
+            //std::cout << "interactable DELETED!\n";
             continue;
         }
         it++;
     }
-    std::cout << "destroying drawables\n";
+    //std::cout << "destroying drawables\n";
     for(auto it = drawables.begin(); it != drawables.end();) {
         if((*it).first.isFreed()) {
             delete (*it).second;
@@ -323,7 +328,7 @@ void purriGUI::GUI::destroyFreedObjects() {
         }
         it++;
     }
-    std::cout << "destroyingFreedObjects returning \n";
+    //std::cout << "destroyingFreedObjects returning \n";
 }
 
 void purriGUI::Interactable::select() {

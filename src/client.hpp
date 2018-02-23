@@ -49,7 +49,7 @@ bool writeStringToFile(std::string fileName, std::string dataString);
 //void clientListenThread(Client* client);
 
 struct CommandResponse {
-    std::string commmand;
+    std::string command;
     std::string response;
     unsigned id;
 };
@@ -209,8 +209,8 @@ public:
     bool freeUnitButtons();
     bool attemptMoveSelectedUnitsToIsland(ClientIsland* targetIsland);
 private:
-    void handleClientNonFactionCommandResponses(CommandResponse response);
-    void handleClientFactionCommandResponses(CommandResponse response);
+    void handleNonFactionCommandResponses(CommandResponse response);
+    void handleFactionCommandResponses(CommandResponse response);
     void updateClientWorld(std::string& worldString);
     void updateIslandGui(sf::Rect<int> screenSpace);
     //returns false, if no unit button was in selected state, returns true otherwise
