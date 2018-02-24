@@ -142,6 +142,7 @@ namespace purriGUI {
         std::unique_ptr<purriGUI::ButtonShape> reactionShape;
         bool previousMousePressedState;
         bool selected;
+        bool selectable;
         bool selectingTriggers;
         bool deselectingTriggers;
         bool xorSelectMode;
@@ -165,6 +166,9 @@ namespace purriGUI {
         bool isFreed() {
             return freed;
         }
+        bool isSelectable() {
+            return selectable;
+        }
         bool getXorSelectMode() {
             return xorSelectMode;
         }
@@ -179,6 +183,10 @@ namespace purriGUI {
         }
         void setDeselectingTriggers(bool value) {
             deselectingTriggers = value;
+        }
+        void setSelectable(bool value)
+        {
+            selectable = value;
         }
         bool isSelected() {
             return selected;

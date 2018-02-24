@@ -592,6 +592,7 @@ std::string World::endTurn() {
     if(!isStarted()) {
         return MSG::GAME_NOT_STRATED_YET;
     }
+    turn++;
     //move troops, do battles. That sort of thing!
 
     //handle peace treaties before moving troops or fighting battles
@@ -923,6 +924,14 @@ void World::worldInStringFormatForFaction(std::string& stringWorld, Faction* LOS
         }
         //first data section complete
         first.gs.push_back(factionsData);
+        if( LOSFaction != nullptr ) {
+            first.gs.push_back( LOSFaction->getName() );
+        }
+        else {
+            std::cerr << "WARNING: possibly showing global vision in a game state request!\n";
+            std::string noneString = "NONE";
+            first.gs.push_back( noneString );
+        }
         stringData.fs.push_back(first);
     }
     //! SECOND FS SEGMENT
@@ -967,6 +976,8 @@ void World::worldInStringFormatForFaction(std::string& stringWorld, Faction* LOS
             requests.rs.push_back(requestUnit);
         }
         second.gs.push_back(requests);
+        //turn data
+        second.gs.push_back(std::to_string(turn));
         //second data section complete
         stringData.fs.push_back(second);
     }

@@ -60,19 +60,11 @@ void Client::updateIslandGui(sf::Rect<int> screenSpace) {
     for(auto it = primitiveDrawables.begin(); it != primitiveDrawables.end(); it++) {
         gui.freeDrawable(*it);
     }
+    freeUnitButtons();
     islandButtons.clear();
     islandListeners.clear();
     //old island buttons and listeners have been deleted: time to create the new ones!
-    int totalRims = world.rims.size();
     sf::Vector2i origo = sf::Vector2i( screenSpace.left+screenSpace.width/2, screenSpace.top+screenSpace.height/2 );
-    float widthToHeightRatio;
-    //to avoid division of zero runtime errors and other anomalies
-    if(screenSpace.height != 0) {
-         widthToHeightRatio = screenSpace.width/screenSpace.height;
-    }
-    else{
-        widthToHeightRatio = 1.0;
-    }
     sf::Vector2i anchorPoint = sf::Vector2i(screenSpace.left, screenSpace.top+screenSpace.height/2);
     int rimCounter = 0;
     for(auto it = world.rims.begin(); it != world.rims.end(); it++) {
@@ -294,12 +286,11 @@ void ClientWorld::refreshFromString(std::string& worldString) {
     treatyRequests.clear();
     peaceTreaties.clear();
     warDeclarations.clear();
+    player = nullptr;
     //FS0 SEGMENT
 
     try {
         std::cout << "FS0\n";
-        std::cout << worldData.fs.size() << " sizes ";
-        std::cout << worldData.fs.at(0).gs.size() << "\n";
         baseRegimentSupply = std::stof((worldData.fs.at(0).gs.at(0).data));
         baseBattleshipSupply = std::stof((worldData.fs.at(0).gs.at(1).data));
         regimentRecoveryRate = std::stof((worldData.fs.at(0).gs.at(2).data));
@@ -311,6 +302,14 @@ void ClientWorld::refreshFromString(std::string& worldString) {
             faction.color = sf::Color(std::stoul( ((*it).us.at(1).data) ));
             //base islands are handled after islands are created
             factions.push_back(faction);
+            // player is described in FS1 but it is more convinient to actually assign it here
+            if(faction.name == worldData.fs.at(0).gs.at(5).data) {
+                player = &factions.back();
+            }
+        }
+        if(player == nullptr)
+        {
+            std::cerr << "Error in ClientWorld::refreshFromString(): assigning the player failed!\n";
         }
 
         //FS1 SEGMENT
@@ -330,6 +329,7 @@ void ClientWorld::refreshFromString(std::string& worldString) {
             request.second = getFactionFromName((*it).us.at(1).data);
             treatyRequests.push_back(request);
         }
+        turn = std::stoi(worldData.fs.at(1).gs.at(2).data);
         //FS2 SEGMENT
         std::cout << "FS2\n";
         //saving rims
@@ -412,14 +412,11 @@ void ClientWorld::refreshFromString(std::string& worldString) {
         for(unsigned i = 0; i < worldData.fs[2].gs.size(); i++) {
             //again, 4 is the amount of rs fields it takes to define an island
             for(unsigned c = 0; c < worldData.fs[2].gs[i].rs.size()/ISLAND_RECURRING_BLOCK_SIZE; c++) {
-                std::cout << "looping island\n";
                 //unit move orders
                 std::list<ClientUnit>::iterator unitCounter = (*islandCounter).units.begin();
                 //3 for the amount of us fields it takes to define units
                 for( unsigned k = 0; k < worldData.fs[2].gs[i].rs[c*ISLAND_RECURRING_BLOCK_SIZE+2].us.size()/3; k++ ) {
-                    std::cout << "looping unit\n";
                     std::string moveOrder = worldData.fs[2].gs[i].rs[c*ISLAND_RECURRING_BLOCK_SIZE+2].us[k*UNIT_RECURRING_BLOCK_SIZE+2].data;
-                    std::cout << "data: '" << moveOrder << "'\n";
                     if ( moveOrder == "" ) { (*unitCounter).targetIsland = nullptr; }
                     else {
                         (*unitCounter).targetIsland = getIslandFromName( moveOrder );
@@ -442,14 +439,13 @@ void ClientWorld::refreshFromString(std::string& worldString) {
         std::cout << "FS3\n";
         //war declarations
         for(auto it = worldData.fs[3].gs[0].rs.begin(); it != worldData.fs[3].gs[0].rs.end(); it++) {
-            std::cout << "looping war declaration\n";
             std::pair<ClientFaction*, ClientFaction*> declaration;
             declaration.first = getFactionFromName( (*it).us[0].data );
             declaration.second = getFactionFromName( (*it).us[1].data );
             warDeclarations.push_back( declaration );
         }
     }
-    catch(const std::out_of_range& e) {
+    catch(const std::exception& e) {
         std::cerr << "Error: Mismatch in communication between server and client. Worldstring returned was either ill-formed, or ill-prosessed on client side!\n" << e.what() << "\n";
         worldString = "";
     }
@@ -736,9 +732,14 @@ bool Client::showUnitButtonsOfIsland(ClientIsland* clientIsland) {
         shape.setPosition(position*counter+initPosition);
         unitText.setPosition(position*counter+initPosition);
         unitText.setString((*it).name + std::to_string((*it).condition));
+        shape.setFillColor( sf::Color(it->faction->color) );
         UnitButton* button = UnitButton::createUnitButton(&gui, shape, unitText, &*it);
-        gui.addInteractableToList(button);
         unitButtons.push_back(button);
+        if((*it).faction == nullptr) { std::cerr << "Error in Client::showUnitButtonsOfIsland(): unit didn't have a faction designated!\n"; }
+        if((*it).faction != world.getPlayer() )
+        {
+            button->setSelectable(false);
+        }
         counter+=1.0f;
     }
     std::cout << "Client::showUnitButtonsOfIsland() end\n";
@@ -757,10 +758,10 @@ void IslandButton::onSelection() {
 }
 
 bool Client::freeUnitButtons() {
-    std::cout << "Client::freeUnitButtons()\n";
+    //std::cout << "Client::freeUnitButtons()\n";
     bool wasProblem = false;
     for(auto it = unitButtons.begin(); it != unitButtons.end(); it++) {
-        std::cout << "freeing interactable\n";
+        //std::cout << "freeing interactable\n";
         if(!gui.freeInteractable((purriGUI::Interactable*)*it)) {
             wasProblem = true;
             std::cerr << "error in Client::freeUnitButtons(): one interactable on the list didn't exist in the gui\n";
@@ -871,7 +872,7 @@ IslandButton* IslandButton::createIslandButton(purriGUI::GUI& hud, Client* _clie
 }
 
 UnitButton::UnitButton(sf::RectangleShape shape, purriGUI::GUI* _hud, sf::Text _buttonText, ClientUnit* _unit, purriGUI::SignalListener* slot): Button(shape, _hud, _buttonText, slot) {
-    std::cout << "creating new UnitButton\n";
+    //std::cout << "creating new UnitButton\n";
     unit = _unit;
     setClickingExclusiveSelectsState(false);
     setDeselectingTriggers(true);

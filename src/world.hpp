@@ -481,6 +481,7 @@ protected:
     int regimentRecoveryRate;
     int shipRecoveryRate;
     bool unstarted;
+    int turn;
 };
 
 //world-class contains the topological information of the playable area and all kinds of other relevant data
@@ -506,6 +507,7 @@ public:
     {
         unverifiedFactions.clear();
         unstarted = true;
+        turn = 1;
     }
     bool isStarted() {
         return !unstarted;

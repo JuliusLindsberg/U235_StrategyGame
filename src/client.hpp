@@ -123,6 +123,9 @@ struct ClientWorld: public WorldData {
     std::list<std::pair<ClientFaction*, ClientFaction*>> treatyRequests;
     std::list<std::pair<ClientFaction*, ClientFaction*>> peaceTreaties;
     std::list<std::pair<ClientFaction*, ClientFaction*>> warDeclarations;
+    private:
+    ClientFaction* player;
+    public:
     //this has all the world data and getter functions, but it behaves quite differently from the server side world, as the client world is supposed to show only actions that reflect
     //the player's decisions
     ClientWorld(std::string& worldString) {
@@ -135,10 +138,13 @@ struct ClientWorld: public WorldData {
     void refreshFromString(std::string& worldString);
     ClientFaction* getFactionFromName(std::string name);
     ClientIsland* getIslandFromName(std::string name);
+    ClientFaction* getPlayer() { return player; }
+    int getTurn() { return turn; }
     void debugPrint();
 };
 
 class IslandButton: public purriGUI::Interactable {
+    friend purriGUI::GUI;
 protected:
     sf::Text nameText;
     ClientIsland* island;
@@ -159,9 +165,7 @@ class UnitButton: public purriGUI::Button {
 public:
     ClientUnit* unit;
     UnitButton(sf::RectangleShape shape, purriGUI::GUI* _hud, sf::Text _buttonText, ClientUnit* _unit, purriGUI::SignalListener* slot = nullptr);
-    virtual ~UnitButton() {
-        std::cout << "deleting UnitButton\n";
-    }
+    virtual ~UnitButton() { /*std::cout << "Destroying unitButton!\n";*/ }
     static UnitButton* createUnitButton(purriGUI::GUI* gui, sf::RectangleShape shape, sf::Text _buttonText, ClientUnit* _unit, purriGUI::SignalListener* slot = nullptr);
 };
 

@@ -274,6 +274,7 @@ void purriGUI::Interactable::loopMe(sf::RenderWindow& window) {
 }
 
 void purriGUI::Interactable::selectExclusively() {
+    if(!isSelectable()) { return; }
     hud->selectInteractableExclusively(this);
 }
 
@@ -299,10 +300,10 @@ void purriGUI::GUI::destroyFreedObjects() {
     //std::cout << "destroying listeners\n";
     for(auto it = listeners.begin(); it != listeners.end();) {
         if((*it)->isFreed()) {
-            std::cout << "deleting listener... ";
+            //std::cout << "deleting listener... ";
             delete (*it);
             it = listeners.erase(it);
-            std::cout << "listener DELETED!\n";
+            //std::cout << "listener DELETED!\n";
             continue;
         }
         it++;
@@ -310,7 +311,11 @@ void purriGUI::GUI::destroyFreedObjects() {
     //std::cout << "destroying interactables\n";
     for(auto it = interactables.begin(); it != interactables.end();) {
         if((*it)->isFreed()) {
-            //std::cout << "deleting interactable... ";
+            //std::cout << "deleting interactable... " << (*it) << " ";
+            if ((*it) == nullptr)
+            {
+                std::cerr << "Error in GUI::destroyFreedObjects(): null pointer was among objects being deleted!\n";
+            }
             delete (*it);
             //std::cout << "...delete command trough!... ";
             it = interactables.erase(it);
@@ -332,6 +337,7 @@ void purriGUI::GUI::destroyFreedObjects() {
 }
 
 void purriGUI::Interactable::select() {
+    if(!isSelectable()) { return; }
     if(xorSelectMode) {
         if(selected) {
             deselect();
@@ -348,6 +354,7 @@ void purriGUI::Interactable::select() {
 }
 
 void purriGUI::Interactable::deselect() {
+    if( !isSelectable() ) { return; }
     selected = false;
     if( deselectingTriggers ) {
         if(signalSlot != nullptr) {
@@ -362,6 +369,7 @@ purriGUI::Interactable::Interactable(sf::CircleShape buttonMesh, GUI* _hud, Sign
     reactionShape = std::unique_ptr<ButtonShape>((ButtonShape*)new CircleButtonShape(buttonMesh));
     activate();
     dead = false;
+    selectable = true;
     clickingExclusiveSelects = false;
     hud = _hud;
     selected = false;
@@ -376,6 +384,7 @@ purriGUI::Interactable::Interactable(sf::RectangleShape buttonMesh, GUI* _hud, S
     activate();
     hud = _hud;
     dead = false;
+    selectable = true;
     clickingExclusiveSelects = false;
     selected = false;
     signalSlot = _signalSlot;
