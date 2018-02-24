@@ -6,6 +6,7 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <chrono>
 
 #include "world.hpp"
 
@@ -40,7 +41,7 @@ class HostSideThreadEncapsulation {
     HostSideThreadEncapsulation(): world() {
         notStopped = true;
     }
-    std::string handleCommand(std::string commandString);
+    std::string handleCommand(std::string commandString, bool serverSide);
     bool hostNotStopped() {
         stopMtx.lock();
         bool wasItStopped = notStopped;
@@ -55,6 +56,7 @@ class HostSideThreadEncapsulation {
 
 public:
     static std::string runHostListenThread(GameHost* host);
+    static void runTurnListenThread(GameHost* host);
 };
 
 class GameHost: public HostSideThreadEncapsulation {

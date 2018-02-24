@@ -1,10 +1,10 @@
 
 #include "host.hpp"
 
-std::string HostSideThreadEncapsulation::handleCommand(std::string commandString) {
+std::string HostSideThreadEncapsulation::handleCommand(std::string commandString, bool serverSide) {
     worldMtx.lock();
     std::cout << "worldMtx locked\n";
-    std::string returnString = world.handleCommand(commandString);
+    std::string returnString = world.handleCommand(commandString, serverSide);
     std::cout << "handlecommand handled\n";
     worldMtx.unlock();
     std::cout << "worldMtx unlocked\n";
@@ -15,9 +15,10 @@ std::string GameHost::runHost() {
     std::string userInput;
     std::cout << "Input a server command here:";
     std::thread hostListenThread ( runHostListenThread, this );
+    std::thread turnListenThred( runTurnListenThread, this );
     while(hostNotStopped()) {
         std::cin >> userInput;
-        std::cout << "Command response: '" << handleCommand(userInput) << "'\n";
+        std::cout << "Command response: '" << handleCommand(userInput, true) << "'\n";
     }
 }
 
@@ -40,7 +41,7 @@ std::string HostSideThreadEncapsulation::runHostListenThread(GameHost* host) {
         }
         client.socket.receive(data, DATA_STRING_BUFFER_SIZE, bytesOfDataRecieved);
         std::string commandString = client.parseCommand(data, bytesOfDataRecieved);
-        std::string returnString = host->handleCommand(commandString);
+        std::string returnString = host->handleCommand(commandString, false);
         delete data;
         //char* dataToSend = new char[returnString.size()+1];
         std::cout << "CommandString: " << commandString << "\n";
@@ -48,5 +49,22 @@ std::string HostSideThreadEncapsulation::runHostListenThread(GameHost* host) {
         client.socket.disconnect();
     }
     //host stop request made by rest of the program, shut down server normally
-    return "SERVER SHUT DOWN ON PROGRAM REQUEST";
+    return MSG::SERVER_SHUT_DOWN_ON_PROGRAM_REQUEST;
+}
+
+void HostSideThreadEncapsulation::runTurnListenThread(GameHost* host)
+{
+    while(host->hostNotStopped())
+    {
+        host->worldMtx.lock();
+        if( host->world.getTimeLeft() < sf::seconds(0.0f) )
+        {
+            //this mutex implementation is a bit funny: as handleCommand() locks the worldMtx it has to be called with worldMtx unlocked
+            host->worldMtx.unlock();
+            host->handleCommand("!t", true);
+            host->worldMtx.lock();
+        }
+        host->worldMtx.unlock();
+        sf::sleep(sf::milliseconds(5));
+    }
 }

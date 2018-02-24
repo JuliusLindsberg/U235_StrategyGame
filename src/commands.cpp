@@ -1,5 +1,6 @@
 #include "world.hpp"
 #include "messagestrings.hpp"
+#include <SFML/Graphics.hpp>
 
 bool World::checkFactionCodeValidity(std::string factionCode) {
     for(std::list<Faction>::iterator it = factions.begin(); it != factions.end(); it++) {
@@ -26,6 +27,9 @@ std::string World::addFaction(std::string commandString) {
     }
     else if(factionName.size() < 3) {
         return MSG::FACTION_NAME_TOO_SHORT;
+    }
+    else if(factionName.size() > 100) {
+        return MSG::FACTION_NAME_TOO_LONG;
     }
     else {
         //create a random faction code and make sure this code is unique
@@ -76,6 +80,7 @@ std::string World::verifyFaction(std::string commandString) {
         if( unverifiedFactions[i].factionCode == factionCode ) {
             Faction newFaction(unverifiedFactions[i].name);
             newFaction.setFactionCode(factionCode);
+            newFaction.setColor(sf::Color( random(255), random(255), random(255)).toInteger() );
             factions.push_back(newFaction);
             std::vector<UnverifiedFaction>::iterator erasable = unverifiedFactions.begin();// = unverifiedFactions.at(i);
             erasable+=i;
@@ -115,7 +120,7 @@ std::string World::handleNonFactionCommand(std::string commandString) {
     case 'p':
         {
             if(isStarted()) {
-                return MSG::RUNNING;
+                return std::to_string(getTurnNumber());
             }
             else {
                 return MSG::LOBBY;
@@ -151,14 +156,14 @@ std::string World::handleServerCommand(std::string commandString) {
     switch(commandType) {
 case 'h':
     {
-        return "Server commands!\n\n !h Display this help\n!s<rimAmount(unsigned)>:<islandness(int)>:<falloutTime(int)>:<baseRegimentSupply(float)>:<baseBattleshipSupply(float)>:<spyAmount(unsigned)>:<regimentRecoveryRate(int)>:<shipRecoveryRate(int)>:<WorldName(string)> Start the game\n!t end the turn and start a new one\n!d show the game situation debug info";
+        return "Server commands!\n\n !h Display this help\n!s<rimAmount(unsigned)>:<islandness(int)>:<falloutTime(int)>:<baseRegimentSupply(float)>:<baseBattleshipSupply(float)>:<spyAmount(unsigned)>:<regimentRecoveryRate(int)>:<shipRecoveryRate(int)>:<WorldName(string)>:<turnTimeInterval(float as seconds)> Start the game\n!t end the turn and start a new one\n!d show the game situation debug info";
     }
 case 's':
     {
         //create a standard kind of world with default arguments
         if(arguments.size() == 0 || arguments.size() == 1) {
             std::string returnMessage = "";
-            returnMessage = startWorld(5, 3, 1, 0.3, 0.3, 2, 0.3, 0.2, "Atolls");
+            returnMessage = startWorld(5, 3, 1, 0.3, 0.3, 2, 0.3, 0.2, "Atolls", 30.0f);
             if(returnMessage == "") {
                 return MSG::DEFAULT_WORLD_CREATED;
             }
@@ -166,13 +171,13 @@ case 's':
                 return returnMessage;
             }
         }
-        if(arguments.size() != 9) {
+        if(arguments.size() != 10) {
             return MSG::INVALID_AMOUNT_OF_ARGUMENTS_IN_COMMAND;
         }
         std::string returnMessage = "";
         try {
         returnMessage = startWorld((unsigned)std::stoi(arguments[0]), std::stoi(arguments[1]), std::stoi(arguments[2]), std::stof(arguments[3]), std::stof(arguments[4]),
-                   (unsigned)std::stoi(arguments[5]), std::stoi(arguments[6]), std::stoi(arguments[7]), arguments[8]);
+                   (unsigned)std::stoi(arguments[5]), std::stoi(arguments[6]), std::stoi(arguments[7]), arguments[8], std::stof(arguments[9]));
         }
         catch(std::invalid_argument){
             return MSG::WRONG_KIND_OF_ARGUMENTS_IN_COMMAND;
@@ -201,7 +206,7 @@ default:
 }
 
 //parses the command and then excecutes it. Returns error strings that should be forwarded to clients in case of errors
-std::string World::handleCommand(std::string commandString) {
+std::string World::handleCommand(std::string commandString, bool serverSide) {
     std::cout << "handling server command!";
     if(commandString.size() == 0) {
         return MSG::EMPTY_STRING;
@@ -214,6 +219,7 @@ std::string World::handleCommand(std::string commandString) {
         return handleNonFactionCommand(commandString);
     }
     else if(commandString[0] == '!') {
+        if(!serverSide) { return MSG::UNAUTHORIZED; }
         return handleServerCommand(commandString);
     }
     std::vector<std::string> arguments;

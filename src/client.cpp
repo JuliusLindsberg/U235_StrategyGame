@@ -102,7 +102,11 @@ void Client::updateIslandGui(sf::Rect<int> screenSpace) {
             sf::CircleShape shape;
             shape.setPosition(position);
             shape.setRadius(10.0f);
-            shape.setFillColor(sf::Color::Green);
+            shape.setFillColor(sf::Color(50, 0, 00, 200));
+            if( (*ct)->owner != nullptr )
+            {
+                shape.setFillColor((*ct)->owner->color);
+            }
             shape.setOutlineColor(sf::Color::Black);
             shape.setOutlineThickness(1.0f);
             shape.setOrigin(10.0f, 10.0f);
@@ -213,6 +217,13 @@ void Client::runClient() {
     while(window.isOpen()) {
         sf::Time loopTime = clock.getElapsedTime();
         sf::Event event;
+
+        //start pinging the server after announced turn time left has expired
+        if( world.getTimeLeft() < sf::seconds(0.0f) )
+        {
+            pingHost = true;
+        }
+
         handleCommandResponses();
         while(window.pollEvent(event)) {
             gui.handleGUIEventActions(event);
@@ -234,6 +245,7 @@ void Client::runClient() {
                 }
             }
         }
+
         gui.manageHUD(window);
         //if(listener->menuSwitchChanged(loopTime)) {
         //    std::cout << "listener.menuSwitchChanged(): " << listener->getMenuSwitch() << "\n";
@@ -330,6 +342,8 @@ void ClientWorld::refreshFromString(std::string& worldString) {
             treatyRequests.push_back(request);
         }
         turn = std::stoi(worldData.fs.at(1).gs.at(2).data);
+        turnEndTime = sf::seconds(std::stof(worldData.fs.at(1).gs.at(3).data));
+        turnTimer.restart();
         //FS2 SEGMENT
         std::cout << "FS2\n";
         //saving rims
@@ -593,20 +607,7 @@ void Client::handleNonFactionCommandResponses(CommandResponse response) {
         {
             hostIpField->deactivate();
             factionNameField->deactivate();
-            if(response.response == MSG::RUNNING) {
-                if(factionCode != "") {
-                    addPendingCommand( factionCode + ":gamestate:", 0);
-                    pingHost = false;
-                }
-                else {
-                    //here the client should ask for a faction code
-                    factionCode = getStringFromFile("lastfactioncode.txt");
-                    if(factionCode != "") {
-                        addPendingCommand( factionCode + ":gamestate:", 0 );
-                    }
-                }
-            }
-            else if(response.response == MSG::LOBBY) {
+            if(response.response == MSG::LOBBY) {
                 if(factionCode != "") {
                     //do nothing: a game is still waiting to start but this client has registered in as a faction already
                 }
@@ -627,8 +628,22 @@ void Client::handleNonFactionCommandResponses(CommandResponse response) {
                     }
                 }
             }
+            //the response is a turn number
             else {
-                std::cerr << "Error in Client::handleClientNonFactionCommandResponses(): bug in server responses; wrong kind of response sent to a client following a #p command("<< response.response <<")\n";
+                //turn hasn't changed
+                if( world.getTurnNumber() == stoi(response.response) ) { break; }
+                if(factionCode != "") {
+                    addPendingCommand( factionCode + ":gamestate:", 0);
+                    pingHost = false;
+                }
+                else {
+                    //here the client should ask for a faction code
+                    factionCode = getStringFromFile("lastfactioncode.txt");
+                    if(factionCode != "") {
+                        addPendingCommand( factionCode + ":gamestate:", 0 );
+                        pingHost = false;
+                    }
+                }
             }
             break;
         }

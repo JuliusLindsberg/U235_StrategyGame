@@ -240,7 +240,7 @@ void World::handleDiplomacy() {
 }
 
 std::string World::startWorld(unsigned _rimAmount, int islandness, int _falloutTime, float _baseRegimentSupply, float _baseBattleshipSupply,
-    unsigned _spyAmount, int _regimentRecoveryRate, int _shipRecoveryRate, std::string worldName) {
+    unsigned _spyAmount, int _regimentRecoveryRate, int _shipRecoveryRate, std::string worldName, float _turnTimeInterval) {
 
     if(!unstarted) {
         return MSG::WORLD_ALREADY_STARTED;
@@ -249,6 +249,10 @@ std::string World::startWorld(unsigned _rimAmount, int islandness, int _falloutT
 
     //unsigned _rimAmount = 5;
     //int islandness = 3;
+    turn = 1;
+    turnTimeInterval = sf::seconds(_turnTimeInterval);
+    turnEndTime = turnTimeInterval;
+    turnTimer.restart();
 
     int rimIslandAdditionValues[_rimAmount];
 
@@ -597,6 +601,8 @@ std::string World::endTurn() {
 
     //handle peace treaties before moving troops or fighting battles
     handleDiplomacy();
+    turnEndTime = turnTimeInterval;
+    turnTimer.restart();
 
     //move regiments
     for(std::list<Faction>::iterator it = factions.begin(); it != factions.end(); it++) {
@@ -978,6 +984,8 @@ void World::worldInStringFormatForFaction(std::string& stringWorld, Faction* LOS
         second.gs.push_back(requests);
         //turn data
         second.gs.push_back(std::to_string(turn));
+        //time left until next turn
+        second.gs.push_back(std::to_string( turnEndTime.asSeconds() ));
         //second data section complete
         stringData.fs.push_back(second);
     }

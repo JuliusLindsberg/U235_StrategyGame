@@ -74,7 +74,7 @@ int main()
                 if( command == "q" || command == "Q" ) {
                     break;
                 }
-                std::string commandMessage = world.handleCommand(command);
+                std::string commandMessage = world.handleCommand(command, true);
                 std::cout << "\nCommand effect: '" << commandMessage << "'\n";
                 if( commandMessage == MSG::GAME_SHUTDOWN_FROM_INPUT ) {
                     break;

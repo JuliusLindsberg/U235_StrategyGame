@@ -482,6 +482,15 @@ protected:
     int shipRecoveryRate;
     bool unstarted;
     int turn;
+    sf::Time turnEndTime;
+    sf::Clock turnTimer;
+public:
+    WorldData() {
+        turn = 0;
+        turnEndTime = sf::seconds(99999.0f);
+    }
+    int getTurnNumber() { return turn; }
+    sf::Time getTimeLeft() { return turnEndTime - turnTimer.getElapsedTime(); }
 };
 
 //world-class contains the topological information of the playable area and all kinds of other relevant data
@@ -493,6 +502,7 @@ private:
     std::list<std::pair<Faction*, Faction*>> treatyRequests;
     std::list<std::pair<Faction*, Faction*>> warDeclarations;
     Namesystem islandNames;
+    sf::Time turnTimeInterval;
 
     void completeInit() {
         return;
@@ -507,13 +517,12 @@ public:
     {
         unverifiedFactions.clear();
         unstarted = true;
-        turn = 1;
     }
     bool isStarted() {
         return !unstarted;
     }
     void debugPrint();
-    std::string handleCommand(std::string commandString);
+    std::string handleCommand(std::string commandString, bool serverSide);
     Island* getIslandFromName(std::string islandName);
     Faction* getFactionFromCode(std::string factionCode);
     Faction* getFactionFromName(std::string factionName);
@@ -524,7 +533,7 @@ public:
 
 private:
     std::string startWorld(unsigned _rimAmount, int islandness, int _falloutTime, float _baseRegimentSupply, float _baseBattleshipSupply,
-    unsigned _spyAmount, int _regimentRecoveryRate, int _shipRecoveryRate, std::string worldName);
+    unsigned _spyAmount, int _regimentRecoveryRate, int _shipRecoveryRate, std::string worldName, float _turnTimeInterval);
     //shows the game state of the whole game world in a single std::string
     //LOSFaction can be left as null for global vision
     void worldInStringFormatForFaction(std::string& stringWorld, Faction* LOSFaction = nullptr);

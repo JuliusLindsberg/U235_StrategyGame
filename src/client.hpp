@@ -16,6 +16,7 @@
 #include "messagestrings.hpp"
 #include <cmath>
 #include <exception>
+#include <chrono>
 
 const float PING_COOLDOWN_TIME_IN_SECONDS = 5.0f;
 const float ISLAND_SPACE_RATIO = 0.7f;
