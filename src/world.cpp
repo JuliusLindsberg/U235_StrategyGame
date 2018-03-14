@@ -658,7 +658,7 @@ std::string World::endTurn() {
         }
     }
     fightBattles();
-    std::cout << "Battles fought\n";
+    //std::cout << "Battles fought\n";
     //recruit new troops
     for(auto it = factions.begin(); it != factions.end(); it++) {
         (*it).turnUpdate(getDominance((&*it)), baseRegimentSupply, baseBattleshipSupply);
@@ -680,18 +680,20 @@ float World::getDominance(Faction* faction) {
 }
 
 void Faction::turnUpdate(float areaDominance, float baseRegimentSupply, float baseBattleshipSupply) {
-
+    std::cout << "Faction " << this->getName() << " has areaDominance of " << areaDominance << ", its newRegminentProgress is " << newRegimentProgress << " and its newBattleshipProgress is " << newBattleshipProgress <<"\n";
     //in the beginning of the turn factions will recruit new battleships and regiments relative to the base supply values and how much islands they own
     //more islands means more troops
     newRegimentProgress+= baseRegimentSupply + areaDominance*dominanceToRegimentsFactor;
     newBattleshipProgress+= baseBattleshipSupply + areaDominance*dominanceToBattleshipsFactor;
+    std::cout << "Faction " << this->getName() << " has areaDominance of " << areaDominance << ", its newRegminentProgress is " << newRegimentProgress << " and its newBattleshipProgress is " << newBattleshipProgress <<"\n";
     //add new regiments
-    for(; newRegimentProgress > 1.0f; newRegimentProgress-=1.0f ) {
-        addRegiment(baseIsland);
+    if( baseIsland == nullptr ) { std::cerr << "Error in Faction::TurnUpdate(): faction had no base island!\n"; }
+    for(; newRegimentProgress >= 1.0f; newRegimentProgress-=1.0f ) {
+        baseIsland->addTroops(0, 1, 0, this);
     }
     //add new battleships
-    for(; newBattleshipProgress > 1.0f; newBattleshipProgress-=1.0f ) {
-        addBattleship(baseIsland);
+    for(; newBattleshipProgress >= 1.0f; newBattleshipProgress-=1.0f ) {
+        baseIsland->addTroops(1, 0, 0, this);
     }
 
     for(auto it = regiments.begin(); it != regiments.end(); it++) {

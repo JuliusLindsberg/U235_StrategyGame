@@ -25,8 +25,8 @@ const float battleRandomDamageConstant = 0.5f;
 const float battleUnitDamageConstant = 20.0f;
 const float battleAttackerDisadvantageConstant = 1.3;
 
-const float dominanceToRegimentsFactor = 0.4f;
-const float dominanceToBattleshipsFactor = 0.2f;
+const float dominanceToRegimentsFactor = 0.25f;
+const float dominanceToBattleshipsFactor = 0.10f;
 const unsigned FACTION_CODE_LENGTH = 4;
 
 class Island;
