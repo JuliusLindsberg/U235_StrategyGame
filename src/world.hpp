@@ -402,6 +402,8 @@ public:
     Island(std::list<Faction*> factionsList, bool _nukeIsland, bool _baseIsland, int _rimNumber, Namesystem* islandNames) {
     name = islandNames->getName();
     rimNumber = _rimNumber;
+    baseIsland = _baseIsland;
+    nukeIsland = _nukeIsland;
     owner = NULL;
         for(std::list<Faction*>::iterator it = factionsList.begin(); it != factionsList.end(); it++) {
             garrisons.push_back(Garrison(*it));

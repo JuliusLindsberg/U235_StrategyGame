@@ -246,9 +246,6 @@ std::string World::startWorld(unsigned _rimAmount, int islandness, int _falloutT
         return MSG::WORLD_ALREADY_STARTED;
     }
     std::list<Faction*> factionsPointerList;
-
-    //unsigned _rimAmount = 5;
-    //int islandness = 3;
     turn = 1;
     turnTimeInterval = sf::seconds(_turnTimeInterval);
     turnEndTime = turnTimeInterval;
@@ -305,7 +302,6 @@ std::string World::startWorld(unsigned _rimAmount, int islandness, int _falloutT
     setStartingTroops();
 
     return "";
-    //F(); ??WTH IS THIS???
 }
 
 void World::setStartingTroops() {
@@ -320,6 +316,7 @@ void World::setStartingTroops() {
         (*fa).baseIsland = &(*it);
         //for(unsigned i = 0; i < startRegimentAmount; i++) {
         (*it).addTroops(startBattleshipAmount, startRegimentAmount, spyAmount, &(*fa));
+        (*it).attemptClaim(& (*fa));
         fa++;
     }
 }
