@@ -3,11 +3,11 @@
 
 std::string HostSideThreadEncapsulation::handleCommand(std::string commandString, bool serverSide) {
     worldMtx.lock();
-    std::cout << "worldMtx locked\n";
+    //std::cout << "worldMtx locked\n";
     std::string returnString = world.handleCommand(commandString, serverSide);
-    std::cout << "handlecommand handled\n";
+    //std::cout << "handlecommand handled\n";
     worldMtx.unlock();
-    std::cout << "worldMtx unlocked\n";
+    //std::cout << "worldMtx unlocked\n";
     return returnString;
 }
 
@@ -34,7 +34,7 @@ std::string HostSideThreadEncapsulation::runHostListenThread(GameHost* host) {
         if( listener.accept(client.socket) != sf::Socket::Done ) {
             std::cerr << "Error in GameHost::runHostThread(): tcpListener failed to accept a connection.\n";
         }
-        std::cout << "connection accepted\n";
+        //std::cout << "connection accepted\n";
         unsigned bytesOfDataRecieved = 0;
         char* data = new char[DATA_STRING_BUFFER_SIZE];
         for(unsigned i = 0; i < DATA_STRING_BUFFER_SIZE; i++) {

@@ -984,7 +984,7 @@ void World::worldInStringFormatForFaction(std::string& stringWorld, Faction* LOS
         //turn data
         second.gs.push_back(std::to_string(turn));
         //time left until next turn
-        second.gs.push_back(std::to_string( turnEndTime.asSeconds() ));
+        second.gs.push_back(std::to_string( getTimeLeft().asSeconds() ));
         //second data section complete
         stringData.fs.push_back(second);
     }

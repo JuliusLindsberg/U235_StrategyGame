@@ -47,6 +47,7 @@ void Client::updateClientWorld(std::string& worldString) {
     sf::Rect<int> rect = sf::Rect<int>(sf::Vector2i(50, 50), sf::Vector2i(550, 550));
     std::cout << "Rect values: top " << rect.top << " left: " << rect.left << " width: " << rect.width << " height: " << rect.height << "\n";
     updateIslandGui(rect);
+    pingHost = false;
 }
 //all the islands are put inside the screenSpace given
 void Client::updateIslandGui(sf::Rect<int> screenSpace) {
@@ -222,6 +223,7 @@ void Client::runClient() {
         if( world.getTimeLeft() < sf::seconds(0.0f) )
         {
             pingHost = true;
+            std::cout << "setting pingHost to true\n";
         }
 
         handleCommandResponses();
@@ -343,6 +345,7 @@ void ClientWorld::refreshFromString(std::string& worldString) {
         }
         turn = std::stoi(worldData.fs.at(1).gs.at(2).data);
         turnEndTime = sf::seconds(std::stof(worldData.fs.at(1).gs.at(3).data));
+        std::cout << "TurnEndTime: " << turnEndTime.asSeconds() << "\n";
         turnTimer.restart();
         //FS2 SEGMENT
         std::cout << "FS2\n";
