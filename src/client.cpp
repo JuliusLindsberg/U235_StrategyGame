@@ -66,7 +66,7 @@ void Client::updateIslandGui(sf::Rect<int> screenSpace) {
     //old island buttons and listeners have been deleted: time to create the new ones!
     sf::Vector2i origo = sf::Vector2i( screenSpace.left+screenSpace.width/2, screenSpace.top+screenSpace.height/2 );
     sf::Vector2i anchorPoint = sf::Vector2i(screenSpace.left, screenSpace.top+screenSpace.height/2);
-    int rimCounter = 0;
+    unsigned rimCounter = 0;
     for(auto it = world.rims.begin(); it != world.rims.end(); it++) {
         if((*it).islands.size() == 0) { std::cerr << "Error in Client::updateIslandGui(): The worlds islands were badly formed, containing rims with no islands in them!\n"; continue; }
         float alpha = 2*PI/(float)(*it).islands.size();

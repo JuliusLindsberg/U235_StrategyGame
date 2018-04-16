@@ -20,6 +20,7 @@ std::string GameHost::runHost() {
         std::cin >> userInput;
         std::cout << "Command response: '" << handleCommand(userInput, true) << "'\n";
     }
+    return MSG::HOST_HAS_QUIT;
 }
 
 std::string HostSideThreadEncapsulation::runHostListenThread(GameHost* host) {

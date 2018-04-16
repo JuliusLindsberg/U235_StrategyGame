@@ -25,7 +25,6 @@ struct ClientCommandInstance {
         }
         std::cout << "parsing a command!\n";
         std::string command;
-        data[bytesOfDataReceived];
         command = data;
         return command;
     }
